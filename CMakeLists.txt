@@ -9,7 +9,7 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/bin>)
 
 #set_property(TARGET 2DLevel PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/images")
 
-ADD_EXECUTABLE(Level 2DLevel.cpp)
+ADD_EXECUTABLE(Level 2DLevel.cpp 2DLevel.h)
 
 ADD_LIBRARY(imgui STATIC 
 			exts/imgui/imconfig.h
