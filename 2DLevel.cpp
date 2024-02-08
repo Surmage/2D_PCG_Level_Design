@@ -2,8 +2,9 @@
 #include "imgui.h"
 #include "imgui-SFML.h"
 
-int width = 75;
-int height = 75;
+int width = 30;
+int height = 30;
+int minSize = 30;
 float camD = 0.84; //camera depth
 constexpr int window_delay = 50;
 const sf::Color GREY(169, 169, 169);
@@ -30,17 +31,19 @@ int Cell::getState() {
 Grid::Grid() {
     this->height = 800;
     this->width = 600;
-    this->isRunning = false;
+    //this->isRunning = false;
     this->randomizeNeighbors = true;
 }
 Grid::Grid(int gridWidth, int gridHeight, bool random) {
     this->height = gridHeight;
     this->width = gridWidth;
-    this->isRunning = false;
+    //this->isRunning = false;
     this->randomizeNeighbors = random;
 }
 
 void Grid::initGridVector(bool randomStates) {
+    gridVector.clear();
+    gridVector.empty();
     if (!randomStates) {
         for (int i = 0; i < width; i++) {
             std::vector<Cell> cellVec;
@@ -80,81 +83,7 @@ void Grid::initGridVector(bool randomStates) {
 }
 
 void Grid::display(int gWidth, int gHeight) {
-    sf::RenderWindow window(sf::VideoMode(gWidth, gHeight), "Cellular Automata", sf::Style::Default);
-    ImGui::SFML::Init(window);
-    sf::Clock deltaClock;
-    //Run the program as long as the window is open
-    while (window.isOpen()) {
-        //Check all the window's events that were triggered since the last iteration of the loop
-        sf::Event event{};
-        while (window.pollEvent(event)) {
-            ImGui::SFML::ProcessEvent(event);
-            //"close requested" event: closes the window
-            switch (event.type)
-            {
-            case sf::Event::Closed:
-                window.close();
-                break;
-            case sf::Event::KeyPressed:
-                if (event.key.code == sf::Keyboard::E)
-                {
-                    std::cout << "E is pressed! Begin Automata!" << std::endl;
-                    isRunning = true;
-                    //                            update(); <-- For testing purposes
-                }
-                if (event.key.code == sf::Keyboard::P)
-                {
-                    std::cout << "P is pressed! Automata has stopped/paused!" << std::endl;
-                    isRunning = false;
-                }
-
-                break;
-            case sf::Event::MouseButtonPressed:
-                if (!isRunning)
-                {
-                    if (event.mouseButton.button == sf::Mouse::Left)
-                    {
-                        placeCell(int(event.mouseButton.x) / int(Cell::cellSize), int(event.mouseButton.y) / int(Cell::cellSize), gridVector);
-                        //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
-                        //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
-                    }
-                    if (event.mouseButton.button == sf::Mouse::Right)
-                    {
-                        deleteCell(int(event.mouseButton.x) / int(Cell::cellSize), int(event.mouseButton.y) / int(Cell::cellSize), gridVector);
-                        //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
-                        //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
-
-                    }
-                }
-                break;
-            }
-        }
-        ImGui::SFML::Update(window, deltaClock.restart());
-
-        ImGui::Begin("Imgui");
-        //ImGui::Text("A");
-        if (ImGui::Button("Start")) {
-            isRunning = !isRunning;
-        }
-        if (ImGui::Button("Reset")) {
-            //isRunning = !isRunning;
-        }
-        ImGui::End();
-        window.clear(sf::Color::White);
-
-        for (const auto& i : gridVector) {
-            for (const auto& j : i) {
-                window.draw(j.cell);
-            }
-        }
-
-        if (isRunning) {
-            update();
-        }
-        ImGui::SFML::Render(window);
-        window.display();
-        sf::sleep(sf::milliseconds(window_delay));
-    }
+   
 }
 
 int Grid::countNeighbors(int x, int y) {
@@ -222,6 +151,10 @@ std::vector<std::vector<Cell>> Grid::gridCopy(const std::vector<std::vector<Cell
     }
     return copy;
 }
+bool Grid::resetGrid() {
+    initGridVector(true);
+    return true;
+}
 
 void Grid::setWidth(int gWidth) {
     this->width = gWidth;
@@ -232,7 +165,7 @@ void Grid::setHeight(int gHeight) {
 }
 
 LevelApp::LevelApp() {
-
+    isRunning = false;
 }
 LevelApp::~LevelApp() {
 
@@ -241,73 +174,95 @@ LevelApp::~LevelApp() {
 bool LevelApp::open()
 {
     bool randomize = true;
-    Grid gameOfLife(width, height, randomize);
-    gameOfLife.run();
-    this->app = new sf::RenderWindow(sf::VideoMode(width, height), "2D Level");
+    grid = new Grid(width, height, randomize);
+    //gameOfLife.run();
+    int extra = width <= minSize ? 15 : 0;
+    this->app = new sf::RenderWindow(sf::VideoMode(int(Cell::cellSize * float(width+extra)), int(Cell::cellSize * float(height))), "Cellular Automata", sf::Style::Default);
     app->setFramerateLimit(60);
-
-    
+    ImGui::SFML::Init(*app);
+    grid->initGridVector(randomize);
     return 1;
 }
 
-void LevelApp::run() {
-    sf::Texture bg;
-    bg.loadFromFile("../images/bg.png");
-    bg.setRepeated(true);
-    sf::Sprite sBackground(bg);
-    sBackground.setTextureRect(sf::IntRect(0, 0, 5000, 2000));
-    sBackground.setPosition(-2000, 0);
-
-    float playerX = 0;
-
-    ImGui::SFML::Init(*app);
+void LevelApp::run() {   
     sf::Clock deltaClock;
-
-    
-
-    while (app->isOpen())
-    {
-        sf::Event e;
-
-        while (app->pollEvent(e))
-        {
-            ImGui::SFML::ProcessEvent(e);
-            if (e.type == sf::Event::Closed)
+    //Run the program as long as the window is open
+    while (app->isOpen()) {
+        //Check all the window's events that were triggered since the last iteration of the loop
+        sf::Event event{};
+        while (app->pollEvent(event)) {
+            ImGui::SFML::ProcessEvent(event);
+            //"close requested" event: closes the window
+            switch (event.type)
+            {
+            case sf::Event::Closed:
                 app->close();
+                break;
+            case sf::Event::KeyPressed:
+                if (event.key.code == sf::Keyboard::E)
+                {
+                    std::cout << "E is pressed! Begin Automata!" << std::endl;
+                    isRunning = true;
+                    //                            update(); <-- For testing purposes
+                }
+                if (event.key.code == sf::Keyboard::P)
+                {
+                    std::cout << "P is pressed! Automata has stopped/paused!" << std::endl;
+                    isRunning = false;
+                }
+
+                break;
+            case sf::Event::MouseButtonPressed:
+                if (!isRunning)
+                {
+                    if (event.mouseButton.button == sf::Mouse::Left)
+                    {
+                        //std::cout << event.mouseButton.x / Cell::cellSize << std::endl;
+                        if (event.mouseButton.x / Cell::cellSize <= width)
+                            grid->placeCell(int(event.mouseButton.x) / int(Cell::cellSize), int(event.mouseButton.y) / int(Cell::cellSize), grid->gridVector);
+                        //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
+                        //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
+                    }
+                    if (event.mouseButton.button == sf::Mouse::Right)
+                    {
+                        //std::cout << event.mouseButton.x / Cell::cellSize  << std::endl;
+                        if (event.mouseButton.x / Cell::cellSize <= width)
+                            grid->deleteCell(int(event.mouseButton.x) / int(Cell::cellSize), int(event.mouseButton.y) / int(Cell::cellSize), grid->gridVector);
+                        //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
+                        //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
+
+                    }
+                }
+                break;
+            }
         }
         ImGui::SFML::Update(*app, deltaClock.restart());
 
-        ImGui::Begin("A");
-        ImGui::Text("A");
+        ImGui::Begin("Imgui");
+        if (ImGui::Button("Start")) {
+            isRunning = !isRunning;
+        }
+        if (ImGui::Button("Reset")) {
+            //reset
+            isRunning = false;
+            grid->resetGrid();
+        }
         ImGui::End();
+        app->clear(sf::Color::White);
 
-        int speed = 0;
-        int H = 0;
+        for (const auto& i : grid->gridVector) {
+            for (const auto& j : i) {
+                app->draw(j.cell);
+            }
+        }
 
-        /*  if (Keyboard::isKeyPressed(Keyboard::Right)) playerX+=0.1;
-          if (Keyboard::isKeyPressed(Keyboard::Left)) playerX-=0.1;
-          if (Keyboard::isKeyPressed(Keyboard::Up)) speed=200;
-          if (Keyboard::isKeyPressed(Keyboard::Down)) speed=-200;
-          if (Keyboard::isKeyPressed(Keyboard::LShift)) speed*=3;
-          if (Keyboard::isKeyPressed(Keyboard::W)) H+=100;
-          if (Keyboard::isKeyPressed(Keyboard::S)) H-=100;*/
-
-
-
-
-
-
-        app->clear(sf::Color(105, 205, 4));
-        app->draw(sBackground);
-        sf::Color color(0, 154, 200);
-        //drawQuad(*app, color, 100, 100, 200, 200); //x, y
-        //drawGrid(*app);
+        if (isRunning) {
+            grid->update();
+        }
         ImGui::SFML::Render(*app);
         app->display();
+        sf::sleep(sf::milliseconds(window_delay));
     }
-
-    ImGui::SFML::Shutdown();
-
 }
 void LevelApp::close() {
     delete this->app;

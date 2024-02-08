@@ -24,7 +24,6 @@ struct Grid {
 	std::vector<std::vector<Cell>>gridVector;
 	int32_t height;
 	int32_t width;
-	bool isRunning;
 	bool randomizeNeighbors;
 
 	int countNeighbors(int x, int y);
@@ -35,6 +34,7 @@ struct Grid {
 
 	static void placeCell(int x, int y, std::vector<std::vector<Cell>>& gridVec);
 	static void deleteCell(int x, int y, std::vector<std::vector<Cell>>& gridVec);
+	bool resetGrid();
 
 	std::vector<std::vector<Cell>> gridCopy(const std::vector<std::vector<Cell>>& gridVec);
 	void update();
@@ -53,7 +53,8 @@ struct LevelApp
 	~LevelApp();
 	//sf::RenderWindow app;
 	sf::RenderWindow* app;
-	Grid grid;
+	Grid* grid;
+	bool isRunning;
 
 	bool open();
 	void run();
