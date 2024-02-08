@@ -2,8 +2,8 @@
 #include "imgui.h"
 #include "imgui-SFML.h"
 
-int width = 30;
-int height = 30;
+int width = 75;
+int height = 75;
 int minSize = 30;
 float camD = 0.84; //camera depth
 constexpr int window_delay = 50;
@@ -194,7 +194,7 @@ void LevelApp::run() {
             ImGui::SFML::ProcessEvent(event);
             //"close requested" event: closes the window
             switch (event.type)
-            {
+            {              
             case sf::Event::Closed:
                 app->close();
                 break;
@@ -211,6 +211,9 @@ void LevelApp::run() {
                     isRunning = false;
                 }
 
+                break;
+            case sf::Event::MouseMoved:
+                mousePos = sf::Mouse::getPosition(*app);
                 break;
             case sf::Event::MouseButtonPressed:
                 if (!isRunning)
@@ -239,6 +242,7 @@ void LevelApp::run() {
         ImGui::SFML::Update(*app, deltaClock.restart());
 
         ImGui::Begin("Imgui");
+        ImGui::Text("Mouse position:(%i, %i)", mousePos.x, mousePos.y);
         if (ImGui::Button("Start")) {
             isRunning = !isRunning;
         }

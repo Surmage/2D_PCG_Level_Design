@@ -55,6 +55,7 @@ struct LevelApp
 	sf::RenderWindow* app;
 	Grid* grid;
 	bool isRunning;
+	sf::Vector2i mousePos;
 
 	bool open();
 	void run();
