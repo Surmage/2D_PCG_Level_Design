@@ -5,8 +5,9 @@
 
 struct Cell {	
 	enum class Type : int {
-		ALIVE,
-		DEAD
+		WATER,
+		EARTH,
+		GRASS
 	};
 	constexpr static float cellSize = 10;
 	int32_t x, y;
@@ -17,6 +18,7 @@ struct Cell {
 	Cell();
 	Cell(int _x, int _y, Cell::Type _type);
 	void setPosition(int _x, int _y);
+	void setType(int newType);
 	int getState();
 };
 
@@ -26,20 +28,20 @@ struct Grid {
 	int32_t width;
 	bool randomizeNeighbors;
 
-	int countNeighbors(int x, int y);
+	int countNeighborsSame(int x, int y);
+	int countNeighborsDiff(int x, int y);
+	int getCellNeighbors(int x, int y);
 	void initGridVector(bool randomStates);
 
 	void setWidth(int width);
 	void setHeight(int height);
 
-	static void placeCell(int x, int y, std::vector<std::vector<Cell>>& gridVec);
-	static void deleteCell(int x, int y, std::vector<std::vector<Cell>>& gridVec);
+	/*static void placeCell(int x, int y, int newType, std::vector<std::vector<Cell>>& gridVec);
+	static void deleteCell(int x, int y, std::vector<std::vector<Cell>>& gridVec);*/
 	bool resetGrid();
 
 	std::vector<std::vector<Cell>> gridCopy(const std::vector<std::vector<Cell>>& gridVec);
 	void update();
-
-	void run();
 
 	void display(int gWidth, int gHeight);
 
@@ -51,11 +53,11 @@ struct LevelApp
 {
 	LevelApp();
 	~LevelApp();
-	//sf::RenderWindow app;
 	sf::RenderWindow* app;
 	Grid* grid;
 	bool isRunning;
 	sf::Vector2i mousePos;
+	int typePlace;
 
 	bool open();
 	void run();

@@ -2,12 +2,15 @@
 #include "imgui.h"
 #include "imgui-SFML.h"
 
-int width = 75;
-int height = 75;
+int width = 100;
+int height = 100;
 int minSize = 30;
 float camD = 0.84; //camera depth
 constexpr int window_delay = 50;
 const sf::Color GREY(169, 169, 169);
+const sf::Color DIRT(153, 76, 0);
+const sf::Color WATER(51, 255, 255);
+const sf::Color GRASS(0, 204, 0);
 
 Cell::Cell(){}
 
@@ -22,9 +25,28 @@ void Cell::setPosition(int _x, int _y) {
     x = _x;
     y = _y;
 }
+void Cell::setType(int newType) {
+    switch (newType)
+    {
+    case 0:
+        type = Cell::Type::WATER;
+        cell.setFillColor(WATER);
+        break;
+    case 1:
+        type = Cell::Type::EARTH;
+        cell.setFillColor(DIRT);
+        break;
+    case 2:
+        type = Cell::Type::GRASS;
+        cell.setFillColor(GRASS);
+        break;
+    }
+}
 int Cell::getState() {
-    if (type == Cell::Type::ALIVE)
+    if (type == Cell::Type::EARTH)
         return 1;
+    else if (type == Cell::Type::GRASS)
+        return 2;
     else
         return 0;
 }
@@ -48,7 +70,7 @@ void Grid::initGridVector(bool randomStates) {
         for (int i = 0; i < width; i++) {
             std::vector<Cell> cellVec;
             for (int j = 0; j < height; j++) {
-                cellVec.push_back(*new Cell(i, j, Cell::Type::DEAD));
+                cellVec.push_back(*new Cell(i, j, Cell::Type::WATER));
             }
             gridVector.push_back(cellVec);
         }
@@ -58,11 +80,13 @@ void Grid::initGridVector(bool randomStates) {
         for (int i = 0; i < width; i++) {
             std::vector<Cell> cellVec;
             for (int j = 0; j < height; j++) {
-                int n = rand() % 2;
+                int n = rand() % 3;
                 if(n == 0)
-                    cellVec.push_back(*new Cell(i, j, Cell::Type::DEAD));
+                    cellVec.push_back(*new Cell(i, j, Cell::Type::WATER));
+                else if(n == 1)
+                    cellVec.push_back(*new Cell(i, j, Cell::Type::EARTH));
                 else
-                    cellVec.push_back(*new Cell(i, j, Cell::Type::ALIVE));
+                    cellVec.push_back(*new Cell(i, j, Cell::Type::GRASS));
                 
             }
             gridVector.push_back(cellVec);
@@ -74,10 +98,11 @@ void Grid::initGridVector(bool randomStates) {
         for (int y = 0; y < height; y++) {
             gridVector[x][y].cell.setPosition(float(x) * gridVector[x][y].cell.getSize().x, float(y) * gridVector[x][y].cell.getSize().y);
             gridVector[x][y].cell.setSize(sf::Vector2f(30, 30));
-            gridVector[x][y].cell.setOutlineThickness(1);
-            gridVector[x][y].cell.setOutlineColor(GREY);
-            if (gridVector[x][y].type == Cell::Type::ALIVE) { gridVector[x][y].cell.setFillColor(sf::Color::White); }
-            else { gridVector[x][y].cell.setFillColor(sf::Color::Black); }
+            //gridVector[x][y].cell.setOutlineThickness(1);
+            //gridVector[x][y].cell.setOutlineColor(GREY);
+            if (gridVector[x][y].type == Cell::Type::WATER) { gridVector[x][y].cell.setFillColor(WATER); }
+            else if(gridVector[x][y].type == Cell::Type::EARTH){ gridVector[x][y].cell.setFillColor(DIRT); }
+            else { gridVector[x][y].cell.setFillColor(GRASS); }
         }
     }
 }
@@ -86,16 +111,17 @@ void Grid::display(int gWidth, int gHeight) {
    
 }
 
-int Grid::countNeighbors(int x, int y) {
+int Grid::countNeighborsSame(int x, int y) {
     if (x == 0 || x == width - 1 || y == 0 || y == height - 1) {
         return 0;
     }
     else {
+        int state = gridVector[x][y].getState();
         int16_t count = 0;
         for (int i = x - 1; i <= x + 1; i++) {
             for (int j = y - 1; j <= y + 1; j++) {
                 if (!(i == x && j == y)) {
-                    if (gridVector[i][j].getState() == 1) {
+                    if (gridVector[i][j].getState() == state) {
                         count++;
                     }
                 }
@@ -105,40 +131,88 @@ int Grid::countNeighbors(int x, int y) {
     }
 }
 
+int Grid::countNeighborsDiff(int x, int y) {
+    if (x == 0 || x == width - 1 || y == 0 || y == height - 1) {
+        return 0;
+    }
+    else {
+        int state = gridVector[x][y].getState();
+        int16_t count = 0;
+        for (int i = x - 1; i <= x + 1; i++) {
+            for (int j = y - 1; j <= y + 1; j++) {
+                if (!(i == x && j == y)) {
+                    if (gridVector[i][j].getState() != state) {
+                        count++;
+                    }
+                }
+            }
+        }
+        return count;
+    }
+}
+
+int Grid::getCellNeighbors(int x, int y) {
+    int water = 0, earth = 0, grass = 0;
+    int state = 0;
+    for (int i = x - 1; i <= x + 1; i++) {
+        for (int j = y - 1; j <= y + 1; j++) {
+            if (!(i == x && j == y)) {
+                state = gridVector[i][j].getState();
+                switch (state)
+                {             
+                case 1:
+                    earth++;
+                    if (earth > 4)
+                        return 1;
+                    break;
+                case 2:
+                    grass++;
+                    if (grass > 4)
+                        return 2;
+                    break;
+                case 0:
+                    water++;
+                    if (water > 4)
+                        return 0;
+                    break;
+                }
+
+            }
+        }
+    }
+    return 0;
+}
+
 void Grid::update() {
     std::vector<std::vector<Cell>> newGrid = gridCopy(gridVector);
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
-            if ((countNeighbors(i, j) < 2 || countNeighbors(i, j) > 3) && (gridVector[i][j].getState())) {
-                deleteCell(i, j, newGrid);
+            if ((countNeighborsSame(i, j) >= 3))
+            {
+                //continue;
             }
-            else if ((countNeighbors(i, j) == 3) && (!gridVector[i][j].getState())) {
-                placeCell(i, j, newGrid);
+            else if ((countNeighborsDiff(i, j) >= 6)) 
+            {
+                newGrid[i][j].setType(getCellNeighbors(i, j));
             }
-            else if ((countNeighbors(i, j) == 3 || countNeighbors(i, j) == 2) && (gridVector[i][j].getState())) {
-                continue;
+            else if(countNeighborsSame(i, j) == 4)
+            {
+                newGrid[i][j].setType(getCellNeighbors(i, j));
             }
         }
     }
     this->gridVector = newGrid;
 }
 
-void Grid::deleteCell(int x, int y, std::vector<std::vector<Cell>>& gridVec) {
-    gridVec[x][y].type = Cell::Type::DEAD;
-    gridVec[x][y].cell.setFillColor(sf::Color::Black);
-}
-
-void Grid::placeCell(int x, int y, std::vector<std::vector<Cell>>& gridVec) {
-    gridVec[x][y].type = Cell::Type::ALIVE;
-    gridVec[x][y].cell.setFillColor(sf::Color::White);
-}
-
-void Grid::run() {
-    std::cout << "Automata is running, press E to begin the simulation, and P to pause, when paused, you can place your own cells!" << std::endl;
-    initGridVector(randomizeNeighbors);
-    display(int(Cell::cellSize * float(width)), int(Cell::cellSize * float(height)));
-
-}
+//void Grid::deleteCell(int x, int y, std::vector<std::vector<Cell>>& gridVec) {
+//    gridVec[x][y].type = Cell::Type::WATER;
+//    gridVec[x][y].cell.setFillColor(WATER);
+//}
+//
+//void Grid::placeCell(int x, int y, int newType, std::vector<std::vector<Cell>>& gridVec) {
+//    gridVec[x][y].type = Cell::Type::EARTH;
+//    gridVec[x][y].cell.setFillColor(DIRT);
+//}
 
 std::vector<std::vector<Cell>> Grid::gridCopy(const std::vector<std::vector<Cell>>& gridVec) {
     std::vector<std::vector<Cell>> copy;
@@ -166,6 +240,7 @@ void Grid::setHeight(int gHeight) {
 
 LevelApp::LevelApp() {
     isRunning = false;
+    typePlace = 0;
 }
 LevelApp::~LevelApp() {
 
@@ -222,7 +297,7 @@ void LevelApp::run() {
                     {
                         //std::cout << event.mouseButton.x / Cell::cellSize << std::endl;
                         if (event.mouseButton.x / Cell::cellSize <= width)
-                            grid->placeCell(int(event.mouseButton.x) / int(Cell::cellSize), int(event.mouseButton.y) / int(Cell::cellSize), grid->gridVector);
+                            grid->gridVector[int(event.mouseButton.x) / int(Cell::cellSize)][int(event.mouseButton.y) / int(Cell::cellSize)].setType(1);
                         //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
                         //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
                     }
@@ -230,7 +305,7 @@ void LevelApp::run() {
                     {
                         //std::cout << event.mouseButton.x / Cell::cellSize  << std::endl;
                         if (event.mouseButton.x / Cell::cellSize <= width)
-                            grid->deleteCell(int(event.mouseButton.x) / int(Cell::cellSize), int(event.mouseButton.y) / int(Cell::cellSize), grid->gridVector);
+                            grid->gridVector[int(event.mouseButton.x) / int(Cell::cellSize)][int(event.mouseButton.y) / int(Cell::cellSize)].setType(0);
                         //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
                         //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
 
@@ -265,7 +340,7 @@ void LevelApp::run() {
         }
         ImGui::SFML::Render(*app);
         app->display();
-        sf::sleep(sf::milliseconds(window_delay));
+        //sf::sleep(sf::milliseconds(window_delay));
     }
 }
 void LevelApp::close() {
