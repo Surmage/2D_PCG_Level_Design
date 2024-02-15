@@ -9,7 +9,7 @@ struct Cell {
 		EARTH,
 		GRASS
 	};
-	constexpr static float cellSize = 10;
+	constexpr static float cellSize = 5;
 	int32_t x, y;
 	sf::Color color;
 	Type type;
@@ -28,9 +28,10 @@ struct Grid {
 	int32_t width;
 	bool randomizeNeighbors;
 
-	int countNeighborsSame(int x, int y);
-	int countNeighborsDiff(int x, int y);
-	int getCellNeighbors(int x, int y);
+	int countNeighborsSame(int x, int y, int areaSize);
+	int countNeighborsDiff(int x, int y, int areaSize);
+	int getCellNeighbors(int x, int y, int areaSize);
+	bool checkPlusShape(int x, int y, std::vector<std::vector<Cell>>& gridVec);
 	void initGridVector(bool randomStates);
 
 	void setWidth(int width);
@@ -41,7 +42,7 @@ struct Grid {
 	bool resetGrid();
 
 	std::vector<std::vector<Cell>> gridCopy(const std::vector<std::vector<Cell>>& gridVec);
-	void update();
+	void update(int& density);
 
 	void display(int gWidth, int gHeight);
 
@@ -56,6 +57,7 @@ struct LevelApp
 	sf::RenderWindow* app;
 	Grid* grid;
 	bool isRunning;
+	int density;
 	sf::Vector2i mousePos;
 	int typePlace;
 
