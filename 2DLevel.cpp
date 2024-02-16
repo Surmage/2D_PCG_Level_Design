@@ -2,8 +2,8 @@
 #include "imgui.h"
 #include "imgui-SFML.h"
 
-int width = 400;
-int height = 400;
+int width = 200;
+int height = 200;
 int minSize = 30;
 float camD = 0.84; //camera depth
 constexpr int window_delay = 50;
@@ -216,34 +216,34 @@ bool Grid::checkPlusShape(int x, int y, std::vector<std::vector<Cell>>& gridVec)
 }
 
 void Grid::update(int& density) {
-    std::vector<std::vector<Cell>> newGrid = gridCopy(gridVector);
+    //std::vector<std::vector<Cell>> newGrid = gridCopy(gridVector);
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
-            if ((newGrid[i][j].type == Cell::Type::WATER))
+            if ((gridVector[i][j].type == Cell::Type::WATER))
             {
                 if (countNeighborsDiff(i, j, 1) >= 4) { //water turn to land
-                    newGrid[i][j].setType(getCellNeighbors(i, j, 1));
+                    gridVector[i][j].setType(getCellNeighbors(i, j, 1));
                     continue;
                 }
 
             }
 
             else if (countNeighborsDiff(i, j, 5) >= density) { //land spread
-                newGrid[i][j].setType(getCellNeighbors(i, j, 5)); //increased density means this gets triggered less
+                gridVector[i][j].setType(getCellNeighbors(i, j, 5)); //increased density means this gets triggered less
                 continue;
             }
 
 
-            if (countNeighborsDiff(i, j, 1) >= 4 && !checkPlusShape(i, j, newGrid)) //remove single cells with no same neighbors in plus shape
+            if (countNeighborsDiff(i, j, 1) >= 4 && !checkPlusShape(i, j, gridVector)) //remove single cells with no same neighbors in plus shape
             {
-                newGrid[i][j].setType(getCellNeighbors(i, j, 1));
+                gridVector[i][j].setType(getCellNeighbors(i, j, 1));
                 continue;
             }
             
         }
     }
     
-    this->gridVector = newGrid;
+    //this->gridVector = newGrid;
 }
 
 //void Grid::deleteCell(int x, int y, std::vector<std::vector<Cell>>& gridVec) {

@@ -9,7 +9,7 @@ struct Cell {
 		EARTH,
 		GRASS
 	};
-	constexpr static float cellSize = 3;
+	constexpr static float cellSize = 6;
 	int32_t x, y;
 	sf::Color color;
 	Type type;
@@ -27,6 +27,7 @@ struct Grid {
 	int32_t height;
 	int32_t width;
 	bool randomizeNeighbors;
+	int density;
 
 	int countNeighborsSame(int x, int y, int areaSize);
 	int countNeighborsDiff(int x, int y, int areaSize);
