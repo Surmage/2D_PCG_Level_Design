@@ -9,7 +9,7 @@ struct Cell {
 		EARTH,
 		GRASS
 	};
-	constexpr static float cellSize = 5;
+	constexpr static float cellSize = 3;
 	int32_t x, y;
 	sf::Color color;
 	Type type;

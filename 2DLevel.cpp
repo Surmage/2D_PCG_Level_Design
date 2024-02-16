@@ -2,8 +2,8 @@
 #include "imgui.h"
 #include "imgui-SFML.h"
 
-int width = 300;
-int height = 300;
+int width = 400;
+int height = 400;
 int minSize = 30;
 float camD = 0.84; //camera depth
 constexpr int window_delay = 50;
@@ -112,14 +112,18 @@ void Grid::display(int gWidth, int gHeight) {
 }
 
 int Grid::countNeighborsSame(int x, int y, int areaSize) {
-    if (x - areaSize < 0 || x + areaSize > width - 1 || y - areaSize < 0 || y + areaSize > height - 1) {
+    int xMin = x - areaSize < 0 ? 0 : x - areaSize;
+    int xMax = x + areaSize > width - 1 ? width - 1 : x + areaSize;
+    int yMin = y - areaSize < 0 ? 0 : y - areaSize;
+    int yMax = y + areaSize > height - 1 ? height - 1 : y + areaSize;
+    /*if (x - areaSize < 0 || x + areaSize > width - 1 || y - areaSize < 0 || y + areaSize > height - 1) {
         return 0;
-    }
-    else {
+    }*/
+    {
         int state = gridVector[x][y].getState();
         int64_t count = 0;
-        for (int i = x - areaSize; i <= x + areaSize; i++) {
-            for (int j = y - areaSize; j <= y + areaSize; j++) {
+        for (int i = xMin; i <= xMax; i++) {
+            for (int j = yMin; j <= yMax; j++) {
                 if (!(i == x && j == y)) {
                     if (gridVector[i][j].getState() == state) {
                         count++;
@@ -132,14 +136,18 @@ int Grid::countNeighborsSame(int x, int y, int areaSize) {
 }
 
 int Grid::countNeighborsDiff(int x, int y, int areaSize) {
-    if (x - areaSize < 0 || x + areaSize > width - 1 || y - areaSize < 0 || y + areaSize > height - 1) {
+    int xMin = x - areaSize < 0 ? 0 : x - areaSize;
+    int xMax = x + areaSize > width - 1 ? width - 1 : x + areaSize;
+    int yMin = y - areaSize < 0 ? 0 : y - areaSize;
+    int yMax = y + areaSize > height - 1 ? height - 1 : y + areaSize;
+    /*if (x - areaSize < 0 || x + areaSize > width - 1 || y - areaSize < 0 || y + areaSize > height - 1) {
         return 0;
-    }
-    else {
+    }*/
+    {
         int state = gridVector[x][y].getState();
         int64_t count = 0;
-        for (int i = x - areaSize; i <= x + areaSize; i++) {
-            for (int j = y - areaSize; j <= y + areaSize; j++) {
+        for (int i = xMin; i <= xMax; i++) {
+            for (int j = yMin; j <= yMax; j++) {
                 if (!(i == x && j == y)) {
                     if (gridVector[i][j].getState() != state) {
                         count++;
@@ -152,27 +160,36 @@ int Grid::countNeighborsDiff(int x, int y, int areaSize) {
 }
 
 int Grid::getCellNeighbors(int x, int y, int areaSize) {
+    int xMin = x - areaSize < 0 ? 0 : x - areaSize;
+    int xMax = x + areaSize > width - 1 ? width - 1 : x + areaSize;
+    int yMin = y - areaSize < 0 ? 0 : y - areaSize;
+    int yMax = y + areaSize > height - 1 ? height - 1 : y + areaSize;
+    /*if (x - areaSize < 0 || x + areaSize > width - 1 || y - areaSize < 0 || y + areaSize > height - 1) {
+        return 0;
+    }*/
     int water = 0, earth = 0, grass = 0;
     int state = 0;
-    for (int i = x - areaSize; i <= x + areaSize; i++) {
-        for (int j = y - areaSize; j <= y + areaSize; j++) {
-            if (!(i == x && j == y)) {
+    int sum = areaSize * 3 + areaSize * areaSize; //WIP
+    for (int i = xMin; i <= xMax; i++) {
+        for (int j = yMin; j <= yMax; j++) {
+            if (!(i == x && j == y)) //skip themselves
+            {
                 state = gridVector[i][j].getState();
                 switch (state)
                 {             
                 case 1:
                     earth++;
-                    if (earth > areaSize*4)
+                    if (earth > sum)
                         return 1;
                     break;
                 case 2:
                     grass++;
-                    if (grass > areaSize * 4)
+                    if (grass > sum)
                         return 2;
                     break;
                 case 0:
                     water++;
-                    if (water > areaSize * 4)
+                    if (water > sum)
                         return 0;
                     break;
                 }
@@ -184,12 +201,15 @@ int Grid::getCellNeighbors(int x, int y, int areaSize) {
 }
 
 bool Grid::checkPlusShape(int x, int y, std::vector<std::vector<Cell>>& gridVec) {
-    if (x == 0 || x == width - 1 || y == 0 || y == height - 1)
-        return true;
-    if (gridVec[x][y].getState() == gridVec[x+1][y].getState()
-        || gridVec[x][y].getState() == gridVec[x-1][y].getState()
-        || gridVec[x][y].getState() == gridVec[x][y+1].getState()
-        || gridVec[x][y].getState() == gridVec[x][y-1].getState())
+    int xMin = x - 1 < 0 ? 0 : x - 1;
+    int xMax = x + 1 > width - 1 ? width - 1 : x + 1;
+    int yMin = y - 1 < 0 ? 0 : y - 1;
+    int yMax = y + 1 > height - 1 ? height - 1 : y + 1;
+
+    if ((gridVec[x][y].getState() == gridVec[xMin][y].getState() && xMin != 0)
+        || (gridVec[x][y].getState() == gridVec[xMax][y].getState() && xMax != width-1)
+        || (gridVec[x][y].getState() == gridVec[x][yMin].getState() && yMin != 0)
+        || (gridVec[x][y].getState() == gridVec[x][yMax].getState() && yMax != height-1))
         return true;
     
     return false;
@@ -199,36 +219,30 @@ void Grid::update(int& density) {
     std::vector<std::vector<Cell>> newGrid = gridCopy(gridVector);
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
-            if ((countNeighborsSame(i, j, 1) >= 3))
+            if ((newGrid[i][j].type == Cell::Type::WATER))
             {
-                //continue;
+                if (countNeighborsDiff(i, j, 1) >= 4) { //water turn to land
+                    newGrid[i][j].setType(getCellNeighbors(i, j, 1));
+                    continue;
+                }
+
             }
-            else if ((countNeighborsDiff(i, j, 1) >= 7)) //change to neighbors type
+
+            else if (countNeighborsDiff(i, j, 5) >= density) { //land spread
+                newGrid[i][j].setType(getCellNeighbors(i, j, 5)); //increased density means this gets triggered less
+                continue;
+            }
+
+
+            if (countNeighborsDiff(i, j, 1) >= 4 && !checkPlusShape(i, j, newGrid)) //remove single cells with no same neighbors in plus shape
             {
                 newGrid[i][j].setType(getCellNeighbors(i, j, 1));
+                continue;
             }
             
         }
     }
-    for (int i = 0; i < width; i++) {
-        for (int j = 0; j < height; j++) {
-            if ((newGrid[i][j].type == Cell::Type::WATER))
-            {
-                if (countNeighborsDiff(i, j, 1) >= 4) {
-                    newGrid[i][j].setType(getCellNeighbors(i, j, 1));
-                }
-                
-            }
-            if (countNeighborsDiff(i, j, 1) >= 3) {
-                if (countNeighborsDiff(i, j, 5) >= density)
-                    newGrid[i][j].setType(getCellNeighbors(i, j, 5));
-            }                
-            if (countNeighborsDiff(i, j, 1) >= 4 && !checkPlusShape(i, j, newGrid)) //change to neighbors type
-            {
-                newGrid[i][j].setType(getCellNeighbors(i, j, 1));
-            }
-        }
-    }
+    
     this->gridVector = newGrid;
 }
 
