@@ -7,7 +7,8 @@ struct Cell {
 	enum class Type : int {
 		WATER,
 		EARTH,
-		GRASS
+		GRASS,
+		LAVA
 	};
 	constexpr static float cellSize = 6;
 	int32_t x, y;
@@ -59,7 +60,7 @@ struct LevelApp
 	bool isRunning;
 	int density;
 	sf::Vector2i mousePos;
-	int typePlace;
+	//int typePlace;
 
 	bool open();
 	void run();

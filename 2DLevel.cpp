@@ -2,10 +2,11 @@
 #include "imgui.h"
 #include "imgui-SFML.h"
 
-int width = 1080;
-int height = 720;
-int minSize = 30;
-float camD = 0.84; //camera depth
+const int width = 1080;
+const int height = 720;
+const sf::Vector2i gridSize(300, 300);
+const int minSize = 30;
+const float camD = 0.84; //camera depth
 constexpr int window_delay = 50;
 const sf::Color GREY(169, 169, 169);
 const sf::Color DIRT(153, 76, 0);
@@ -63,17 +64,16 @@ Grid::Grid() {
 Grid::Grid(int gridWidth, int gridHeight, bool random) {
     this->height = gridHeight;
     this->width = gridWidth;
-    //this->isRunning = false;
     this->randomizeNeighbors = random;
 }
 
 void Grid::initGridVector(bool randomStates, int number) { //TODO: change to vertex array for optimization
     gridVector.clear();
-    gridVector.empty();
+    //gridVector.empty();
     if (!randomStates) {
-        for (int i = 0; i < width; i++) {
+        for (int i = 0; i < this->width; i++) {
             std::vector<Cell> cellVec;
-            for (int j = 0; j < height; j++) {
+            for (int j = 0; j < this->height; j++) {
                 cellVec.push_back(*new Cell(i, j, Cell::Type::WATER));
             }
             gridVector.push_back(cellVec);
@@ -81,9 +81,9 @@ void Grid::initGridVector(bool randomStates, int number) { //TODO: change to ver
     }
     else {
         srand(time(nullptr));
-        for (int i = 0; i < width; i++) {
+        for (int i = 0; i < this->width; i++) {
             std::vector<Cell> cellVec;
-            for (int j = 0; j < height; j++) {
+            for (int j = 0; j < this->height; j++) {
                 int n = rand() % 3;
                 if(n == 0)
                     cellVec.push_back(*new Cell(i, j, Cell::Type::WATER));
@@ -98,10 +98,10 @@ void Grid::initGridVector(bool randomStates, int number) { //TODO: change to ver
     }
 
     //Not the most efficient but I just want to demonstrate the use of the Cell class, however this can be done in a single nested loop
-    for (int x = 0; x < width; x++) {
-        for (int y = 0; y < height; y++) {
+    for (int x = 0; x < gridSize.x; x++) {
+        for (int y = 0; y < gridSize.y; y++) {
             gridVector[x][y].cell.setPosition(float(x) * gridVector[x][y].cell.getSize().x, float(y) * gridVector[x][y].cell.getSize().y);
-            gridVector[x][y].cell.setSize(sf::Vector2f(30, 30));
+            //gridVector[x][y].cell.setSize(sf::Vector2f(10, 10));
             //gridVector[x][y].cell.setOutlineThickness(1);
             //gridVector[x][y].cell.setOutlineColor(GREY);
             if (gridVector[x][y].type == Cell::Type::WATER) { gridVector[x][y].cell.setFillColor(WATER); }
@@ -113,9 +113,9 @@ void Grid::initGridVector(bool randomStates, int number) { //TODO: change to ver
 
 int Grid::countNeighborsSame(int x, int y, int areaSize) {
     int xMin = x - areaSize < 0 ? 0 : x - areaSize;
-    int xMax = x + areaSize > width - 1 ? width - 1 : x + areaSize;
+    int xMax = x + areaSize > this->width - 1 ? this->width - 1 : x + areaSize;
     int yMin = y - areaSize < 0 ? 0 : y - areaSize;
-    int yMax = y + areaSize > height - 1 ? height - 1 : y + areaSize;
+    int yMax = y + areaSize > this->height - 1 ? this->height - 1 : y + areaSize;
     /*if (x - areaSize < 0 || x + areaSize > width - 1 || y - areaSize < 0 || y + areaSize > height - 1) {
         return 0;
     }*/
@@ -137,9 +137,9 @@ int Grid::countNeighborsSame(int x, int y, int areaSize) {
 
 int Grid::countNeighborsDiff(int x, int y, int areaSize) {
     int xMin = x - areaSize < 0 ? 0 : x - areaSize;
-    int xMax = x + areaSize > width - 1 ? width - 1 : x + areaSize;
+    int xMax = x + areaSize > this->width - 1 ? this->width - 1 : x + areaSize;
     int yMin = y - areaSize < 0 ? 0 : y - areaSize;
-    int yMax = y + areaSize > height - 1 ? height - 1 : y + areaSize;
+    int yMax = y + areaSize > this->height - 1 ? this->height - 1 : y + areaSize;
     /*if (x - areaSize < 0 || x + areaSize > width - 1 || y - areaSize < 0 || y + areaSize > height - 1) {
         return 0;
     }*/
@@ -161,9 +161,9 @@ int Grid::countNeighborsDiff(int x, int y, int areaSize) {
 
 int Grid::getCellNeighbors(int x, int y, int areaSize) {
     int xMin = x - areaSize < 0 ? 0 : x - areaSize;
-    int xMax = x + areaSize > width - 1 ? width - 1 : x + areaSize;
+    int xMax = x + areaSize > this->width - 1 ? this->width - 1 : x + areaSize;
     int yMin = y - areaSize < 0 ? 0 : y - areaSize;
-    int yMax = y + areaSize > height - 1 ? height - 1 : y + areaSize;
+    int yMax = y + areaSize > this->height - 1 ? this->height - 1 : y + areaSize;
     /*if (x - areaSize < 0 || x + areaSize > width - 1 || y - areaSize < 0 || y + areaSize > height - 1) {
         return 0;
     }*/
@@ -202,14 +202,14 @@ int Grid::getCellNeighbors(int x, int y, int areaSize) {
 
 bool Grid::checkPlusShape(int x, int y, std::vector<std::vector<Cell>>& gridVec) {
     int xMin = x - 1 < 0 ? 0 : x - 1;
-    int xMax = x + 1 > width - 1 ? width - 1 : x + 1;
+    int xMax = x + 1 > this->width - 1 ? this->width - 1 : x + 1;
     int yMin = y - 1 < 0 ? 0 : y - 1;
-    int yMax = y + 1 > height - 1 ? height - 1 : y + 1;
+    int yMax = y + 1 > this->height - 1 ? this->height - 1 : y + 1;
 
     if ((gridVec[x][y].getState() == gridVec[xMin][y].getState() && xMin != 0)
-        || (gridVec[x][y].getState() == gridVec[xMax][y].getState() && xMax != width-1)
+        || (gridVec[x][y].getState() == gridVec[xMax][y].getState() && xMax != this->width-1)
         || (gridVec[x][y].getState() == gridVec[x][yMin].getState() && yMin != 0)
-        || (gridVec[x][y].getState() == gridVec[x][yMax].getState() && yMax != height-1))
+        || (gridVec[x][y].getState() == gridVec[x][yMax].getState() && yMax != this->height-1))
         return true;
     
     return false;
@@ -217,8 +217,8 @@ bool Grid::checkPlusShape(int x, int y, std::vector<std::vector<Cell>>& gridVec)
 
 void Grid::update(int& density) {
     //std::vector<std::vector<Cell>> newGrid = gridCopy(gridVector);
-    for (int i = 0; i < width; i++) {
-        for (int j = 0; j < height; j++) {
+    for (int i = 0; i < gridSize.x; i++) {
+        for (int j = 0; j < gridSize.y; j++) {
             if ((gridVector[i][j].type == Cell::Type::WATER))
             {
                 if (countNeighborsDiff(i, j, 1) >= 4) { //water turn to land
@@ -228,33 +228,21 @@ void Grid::update(int& density) {
 
             }
 
-            else if (countNeighborsDiff(i, j, 5) >= density) { //land spread
-                gridVector[i][j].setType(getCellNeighbors(i, j, 5)); //increased density means this gets triggered less
+            else if (countNeighborsDiff(i, j, (int)(height * 0.018)) >= density) { //land spread
+                gridVector[i][j].setType(getCellNeighbors(i, j, (int)(height * 0.018))); //increased density means this gets triggered less
                 continue;
             }
-
 
             if (countNeighborsDiff(i, j, 1) >= 4 && !checkPlusShape(i, j, gridVector)) //remove single cells with no same neighbors in plus shape
             {
                 gridVector[i][j].setType(getCellNeighbors(i, j, 1));
                 continue;
-            }
-            
+            }         
         }
     }
     
     //this->gridVector = newGrid;
 }
-
-//void Grid::deleteCell(int x, int y, std::vector<std::vector<Cell>>& gridVec) {
-//    gridVec[x][y].type = Cell::Type::WATER;
-//    gridVec[x][y].cell.setFillColor(WATER);
-//}
-//
-//void Grid::placeCell(int x, int y, int newType, std::vector<std::vector<Cell>>& gridVec) {
-//    gridVec[x][y].type = Cell::Type::EARTH;
-//    gridVec[x][y].cell.setFillColor(DIRT);
-//}
 
 std::vector<std::vector<Cell>> Grid::gridCopy(const std::vector<std::vector<Cell>>& gridVec) {
     std::vector<std::vector<Cell>> copy;
@@ -282,8 +270,8 @@ void Grid::setHeight(int gHeight) {
 
 LevelApp::LevelApp() {
     isRunning = false;
-    typePlace = 0;
-    density = 75;
+    //typePlace = 0;
+    density = 90;
 }
 LevelApp::~LevelApp() {
 
@@ -292,10 +280,10 @@ LevelApp::~LevelApp() {
 bool LevelApp::open()
 {
     bool randomize = true;
-    grid = new Grid(300, 300, randomize);
+    grid = new Grid(gridSize.x, gridSize.y, randomize);
     //gameOfLife.run();
-    int extra = width <= minSize ? 15 : 0;
-    this->app = new sf::RenderWindow(sf::VideoMode(int(float(width+extra)), int(float(height))), "Cellular Automata", sf::Style::Default);
+    //int extra = width <= minSize ? 15 : 0;
+    this->app = new sf::RenderWindow(sf::VideoMode(int(width), int(height)), "Cellular Automata", sf::Style::Default);
     app->setFramerateLimit(60);
     ImGui::SFML::Init(*app);
     grid->initGridVector(randomize, 200);
@@ -309,11 +297,23 @@ void LevelApp::run() {
     float zoom = 1;
     bool cameraMoveOn = false;
     bool editOn = false;
+    sf::Image image;
+    if (!image.loadFromFile("../images/red.png"))
+    {
+        // Error...
+    }
+    sf::Texture texture;
+    texture.loadFromImage(image);  //Load Texture from image
+    sf::Sprite sprite;
+    sprite.setTexture(texture);
+    
 
     sf::View view = app->getDefaultView();
     //Run the program as long as the window is open
     while (app->isOpen()) {
         //Check all the window's events that were triggered since the last iteration of the loop
+        ImGui::SFML::Update(*app, deltaClock.restart());
+        ImGui::Begin("Imgui");
         sf::Event event{};
         while (app->pollEvent(event)) {
             ImGui::SFML::ProcessEvent(event);
@@ -341,12 +341,17 @@ void LevelApp::run() {
                 if (cameraMoveOn)
                     moving = true;
                 oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
-                if (!isRunning && editOn)
+                sprite.setPosition(oldPos);
+                
+                if (!isRunning && editOn && !ImGui::GetIO().WantCaptureMouse)
                 {
                     if (event.mouseButton.button == sf::Mouse::Left)
                     {
                         //std::cout << event.mouseButton.x / Cell::cellSize << std::endl;
-                        if (oldPos.x / Cell::cellSize <= width)
+                        if (oldPos.x <= gridSize.x * Cell::cellSize &&
+                            oldPos.x >= 0 &&
+                            oldPos.y <= gridSize.y * Cell::cellSize &&
+                            oldPos.y >= 0)
                             grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(1);
                         //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
                         //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
@@ -354,7 +359,10 @@ void LevelApp::run() {
                     if (event.mouseButton.button == sf::Mouse::Right)
                     {
                         //std::cout << event.mouseButton.x / Cell::cellSize  << std::endl;
-                        if (oldPos.x / Cell::cellSize <= width)
+                        if (oldPos.x <= gridSize.x * Cell::cellSize &&
+                            oldPos.x >= 0 &&
+                            oldPos.y <= gridSize.y * Cell::cellSize &&
+                            oldPos.y >= 0)
                             grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(0);
                         //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
                         //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
@@ -393,11 +401,9 @@ void LevelApp::run() {
 
             case sf::Event::MouseWheelScrolled:
             {
-                if (!cameraMoveOn)
+                if (!cameraMoveOn || moving)
                     break;
                 // Ignore the mouse wheel unless we're not moving
-                if (moving)
-                    break;
 
                 // Determine the scroll direction and adjust the zoom level
                 // Again, you can swap these to invert the direction
@@ -415,39 +421,39 @@ void LevelApp::run() {
 
 
             }
+        }           
+        ImGui::Text("Mouse position:(%i, %i)", mousePos.x, mousePos.y);
+        if (ImGui::Button("Start")) {
+            isRunning = !isRunning;
         }
-            ImGui::SFML::Update(*app, deltaClock.restart());
+        if (ImGui::Button("Reset")) {
+            //reset
+            isRunning = false;
+            moving = false;
+            cameraMoveOn = false;
+            grid->resetGrid();
+        }
+        
+        app->clear(sf::Color::White);
+        ImGui::Checkbox("Movement", &cameraMoveOn);
+        ImGui::Checkbox("Edit", &editOn);
+        ImGui::SliderInt("Density", &density, 80, 120);
+        ImGui::End();
 
-            ImGui::Begin("Imgui");
-            ImGui::Text("Mouse position:(%i, %i)", mousePos.x, mousePos.y);
-            if (ImGui::Button("Start")) {
-                isRunning = !isRunning;
+        for (const auto& i : grid->gridVector) {
+            for (const auto& j : i) {
+                app->draw(j.cell);
             }
-            if (ImGui::Button("Reset")) {
-                //reset
-                isRunning = false;
-                moving = false;
-                cameraMoveOn = false;
-                grid->resetGrid();
-            }
-            ImGui::Checkbox("Movement", &cameraMoveOn);
-            ImGui::Checkbox("Edit", &editOn);
-            ImGui::SliderInt("Density", &density, 60, 100);
-            ImGui::End();
-            app->clear(sf::Color::White);
+        }
+        
+        app->draw(sprite);
 
-            for (const auto& i : grid->gridVector) {
-                for (const auto& j : i) {
-                    app->draw(j.cell);
-                }
-            }
-
-            if (isRunning) {
-                grid->update(density);
-            }
-            ImGui::SFML::Render(*app);
-            app->display();
-            //sf::sleep(sf::milliseconds(window_delay));
+        if (isRunning) {
+            grid->update(density);
+        }
+        ImGui::SFML::Render(*app);
+        app->display();
+        //sf::sleep(sf::milliseconds(window_delay));
         
     }
 }
