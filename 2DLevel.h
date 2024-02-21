@@ -34,7 +34,7 @@ struct Grid {
 	int countNeighborsDiff(int x, int y, int areaSize);
 	int getCellNeighbors(int x, int y, int areaSize);
 	bool checkPlusShape(int x, int y, std::vector<std::vector<Cell>>& gridVec);
-	void initGridVector(bool randomStates);
+	void initGridVector(bool randomStates, int number);
 
 	void setWidth(int width);
 	void setHeight(int height);
@@ -45,8 +45,6 @@ struct Grid {
 
 	std::vector<std::vector<Cell>> gridCopy(const std::vector<std::vector<Cell>>& gridVec);
 	void update(int& density);
-
-	void display(int gWidth, int gHeight);
 
 	Grid();
 	Grid(int gridWidth, int gridHeight, bool random);

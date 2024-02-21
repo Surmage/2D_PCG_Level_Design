@@ -2,8 +2,8 @@
 #include "imgui.h"
 #include "imgui-SFML.h"
 
-int width = 200;
-int height = 200;
+int width = 1080;
+int height = 720;
 int minSize = 30;
 float camD = 0.84; //camera depth
 constexpr int window_delay = 50;
@@ -67,7 +67,7 @@ Grid::Grid(int gridWidth, int gridHeight, bool random) {
     this->randomizeNeighbors = random;
 }
 
-void Grid::initGridVector(bool randomStates) {
+void Grid::initGridVector(bool randomStates, int number) { //TODO: change to vertex array for optimization
     gridVector.clear();
     gridVector.empty();
     if (!randomStates) {
@@ -109,10 +109,6 @@ void Grid::initGridVector(bool randomStates) {
             else { gridVector[x][y].cell.setFillColor(GRASS); }
         }
     }
-}
-
-void Grid::display(int gWidth, int gHeight) {
-   
 }
 
 int Grid::countNeighborsSame(int x, int y, int areaSize) {
@@ -272,7 +268,7 @@ std::vector<std::vector<Cell>> Grid::gridCopy(const std::vector<std::vector<Cell
     return copy;
 }
 bool Grid::resetGrid() {
-    initGridVector(true);
+    initGridVector(true, 200);
     return true;
 }
 
@@ -296,13 +292,13 @@ LevelApp::~LevelApp() {
 bool LevelApp::open()
 {
     bool randomize = true;
-    grid = new Grid(width, height, randomize);
+    grid = new Grid(300, 300, randomize);
     //gameOfLife.run();
     int extra = width <= minSize ? 15 : 0;
-    this->app = new sf::RenderWindow(sf::VideoMode(int(Cell::cellSize * float(width+extra)), int(Cell::cellSize * float(height))), "Cellular Automata", sf::Style::Default);
+    this->app = new sf::RenderWindow(sf::VideoMode(int(float(width+extra)), int(float(height))), "Cellular Automata", sf::Style::Default);
     app->setFramerateLimit(60);
     ImGui::SFML::Init(*app);
-    grid->initGridVector(randomize);
+    grid->initGridVector(randomize, 200);
     return 1;
 }
 
@@ -312,6 +308,7 @@ void LevelApp::run() {
     bool moving = false;
     float zoom = 1;
     bool cameraMoveOn = false;
+    bool editOn = false;
 
     sf::View view = app->getDefaultView();
     //Run the program as long as the window is open
@@ -339,29 +336,31 @@ void LevelApp::run() {
                     isRunning = false;
                 }
 
-                break;            
+                break;
             case sf::Event::MouseButtonPressed:
-                if (!isRunning)
+                if (cameraMoveOn)
+                    moving = true;
+                oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+                if (!isRunning && editOn)
                 {
-                    if(cameraMoveOn)
-                        moving = true;
-                    oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));                    if (event.mouseButton.button == sf::Mouse::Left)
+                    if (event.mouseButton.button == sf::Mouse::Left)
                     {
                         //std::cout << event.mouseButton.x / Cell::cellSize << std::endl;
-                        if (event.mouseButton.x / Cell::cellSize <= width)
-                            grid->gridVector[int(event.mouseButton.x) / int(Cell::cellSize)][int(event.mouseButton.y) / int(Cell::cellSize)].setType(1);
+                        if (oldPos.x / Cell::cellSize <= width)
+                            grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(1);
                         //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
                         //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
                     }
                     if (event.mouseButton.button == sf::Mouse::Right)
                     {
                         //std::cout << event.mouseButton.x / Cell::cellSize  << std::endl;
-                        if (event.mouseButton.x / Cell::cellSize <= width)
-                            grid->gridVector[int(event.mouseButton.x) / int(Cell::cellSize)][int(event.mouseButton.y) / int(Cell::cellSize)].setType(0);
+                        if (oldPos.x / Cell::cellSize <= width)
+                            grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(0);
                         //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
                         //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
 
                     }
+       
                 }
                 break;
             case sf::Event::MouseButtonReleased:
@@ -372,8 +371,7 @@ void LevelApp::run() {
                 break;
             case sf::Event::MouseMoved:
             {
-                mousePos = sf::Mouse::getPosition(*app);
-                
+                mousePos = (sf::Vector2i)app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
                 // Ignore mouse movement unless a button is pressed (see above)
                 if (!moving || !cameraMoveOn)
                     break;
@@ -391,7 +389,7 @@ void LevelApp::run() {
                 // We're recalculating this, since we've changed the view
                 oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
             }
-                break;
+            break;
 
             case sf::Event::MouseWheelScrolled:
             {
@@ -404,19 +402,20 @@ void LevelApp::run() {
                 // Determine the scroll direction and adjust the zoom level
                 // Again, you can swap these to invert the direction
                 if (event.mouseWheelScroll.delta <= -1)
-                    zoom = std::min(2.f, zoom + .1f);
+                    zoom = std::min(5.f, zoom + .1f);
                 else if (event.mouseWheelScroll.delta >= 1)
-                    zoom = std::max(.5f, zoom - .1f);
+                    zoom = std::max(.1f, zoom - .1f);
 
                 // Update our view
                 view.setSize(app->getDefaultView().getSize()); // Reset the size
                 view.zoom(zoom); // Apply the zoom level (this transforms the view)
                 app->setView(view);
             }
-                break;
+            break;
 
 
             }
+        }
             ImGui::SFML::Update(*app, deltaClock.restart());
 
             ImGui::Begin("Imgui");
@@ -431,10 +430,8 @@ void LevelApp::run() {
                 cameraMoveOn = false;
                 grid->resetGrid();
             }
-            if (ImGui::Button("Movement")) {
-                cameraMoveOn = !cameraMoveOn;
-                
-            }
+            ImGui::Checkbox("Movement", &cameraMoveOn);
+            ImGui::Checkbox("Edit", &editOn);
             ImGui::SliderInt("Density", &density, 60, 100);
             ImGui::End();
             app->clear(sf::Color::White);
@@ -451,7 +448,7 @@ void LevelApp::run() {
             ImGui::SFML::Render(*app);
             app->display();
             //sf::sleep(sf::milliseconds(window_delay));
-        }
+        
     }
 }
 void LevelApp::close() {
