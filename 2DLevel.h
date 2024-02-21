@@ -14,6 +14,7 @@ struct Cell {
 	sf::Color color;
 	Type type;
 	sf::RectangleShape cell;
+	bool isWalkable;
 
 	Cell();
 	Cell(int _x, int _y, Cell::Type _type);

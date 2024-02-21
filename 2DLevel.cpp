@@ -19,6 +19,7 @@ Cell::Cell(int _x, int _y, Cell::Type _type) {
     this->y = _y;
     this->type = _type;
     cell.setSize(sf::Vector2f(cellSize, cellSize));
+    isWalkable = false;
 }
 
 void Cell::setPosition(int _x, int _y) {
@@ -31,14 +32,17 @@ void Cell::setType(int newType) {
     case 0:
         type = Cell::Type::WATER;
         cell.setFillColor(WATER);
+        isWalkable = false;
         break;
     case 1:
         type = Cell::Type::EARTH;
         cell.setFillColor(DIRT);
+        isWalkable = true;
         break;
     case 2:
         type = Cell::Type::GRASS;
         cell.setFillColor(GRASS);
+        isWalkable = true;
         break;
     }
 }
@@ -304,6 +308,12 @@ bool LevelApp::open()
 
 void LevelApp::run() {   
     sf::Clock deltaClock;
+    sf::Vector2f oldPos;
+    bool moving = false;
+    float zoom = 1;
+    bool cameraMoveOn = false;
+
+    sf::View view = app->getDefaultView();
     //Run the program as long as the window is open
     while (app->isOpen()) {
         //Check all the window's events that were triggered since the last iteration of the loop
@@ -312,7 +322,7 @@ void LevelApp::run() {
             ImGui::SFML::ProcessEvent(event);
             //"close requested" event: closes the window
             switch (event.type)
-            {              
+            {
             case sf::Event::Closed:
                 app->close();
                 break;
@@ -329,14 +339,13 @@ void LevelApp::run() {
                     isRunning = false;
                 }
 
-                break;
-            case sf::Event::MouseMoved:
-                mousePos = sf::Mouse::getPosition(*app);
-                break;
+                break;            
             case sf::Event::MouseButtonPressed:
                 if (!isRunning)
                 {
-                    if (event.mouseButton.button == sf::Mouse::Left)
+                    if(cameraMoveOn)
+                        moving = true;
+                    oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));                    if (event.mouseButton.button == sf::Mouse::Left)
                     {
                         //std::cout << event.mouseButton.x / Cell::cellSize << std::endl;
                         if (event.mouseButton.x / Cell::cellSize <= width)
@@ -355,36 +364,94 @@ void LevelApp::run() {
                     }
                 }
                 break;
+            case sf::Event::MouseButtonReleased:
+                // Mouse button is released, no longer move
+                if (event.mouseButton.button == 0) {
+                    moving = false;
+                }
+                break;
+            case sf::Event::MouseMoved:
+            {
+                mousePos = sf::Mouse::getPosition(*app);
+                
+                // Ignore mouse movement unless a button is pressed (see above)
+                if (!moving || !cameraMoveOn)
+                    break;
+                // Determine the new position in world coordinates
+                const sf::Vector2f newPos = app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
+                // Determine how the cursor has moved
+                // Swap these to invert the movement direction
+                const sf::Vector2f deltaPos = oldPos - newPos;
+
+                // Move our view accordingly and update the window
+                view.setCenter(view.getCenter() + deltaPos);
+                app->setView(view);
+
+                // Save the new position as the old one
+                // We're recalculating this, since we've changed the view
+                oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
             }
-        }
-        ImGui::SFML::Update(*app, deltaClock.restart());
+                break;
 
-        ImGui::Begin("Imgui");
-        ImGui::Text("Mouse position:(%i, %i)", mousePos.x, mousePos.y);
-        if (ImGui::Button("Start")) {
-            isRunning = !isRunning;
-        }
-        if (ImGui::Button("Reset")) {
-            //reset
-            isRunning = false;
-            grid->resetGrid();
-        }
-        ImGui::SliderInt("Density", &density, 60, 100);
-        ImGui::End();
-        app->clear(sf::Color::White);
+            case sf::Event::MouseWheelScrolled:
+            {
+                if (!cameraMoveOn)
+                    break;
+                // Ignore the mouse wheel unless we're not moving
+                if (moving)
+                    break;
 
-        for (const auto& i : grid->gridVector) {
-            for (const auto& j : i) {
-                app->draw(j.cell);
+                // Determine the scroll direction and adjust the zoom level
+                // Again, you can swap these to invert the direction
+                if (event.mouseWheelScroll.delta <= -1)
+                    zoom = std::min(2.f, zoom + .1f);
+                else if (event.mouseWheelScroll.delta >= 1)
+                    zoom = std::max(.5f, zoom - .1f);
+
+                // Update our view
+                view.setSize(app->getDefaultView().getSize()); // Reset the size
+                view.zoom(zoom); // Apply the zoom level (this transforms the view)
+                app->setView(view);
             }
-        }
+                break;
 
-        if (isRunning) {
-            grid->update(density);
+
+            }
+            ImGui::SFML::Update(*app, deltaClock.restart());
+
+            ImGui::Begin("Imgui");
+            ImGui::Text("Mouse position:(%i, %i)", mousePos.x, mousePos.y);
+            if (ImGui::Button("Start")) {
+                isRunning = !isRunning;
+            }
+            if (ImGui::Button("Reset")) {
+                //reset
+                isRunning = false;
+                moving = false;
+                cameraMoveOn = false;
+                grid->resetGrid();
+            }
+            if (ImGui::Button("Movement")) {
+                cameraMoveOn = !cameraMoveOn;
+                
+            }
+            ImGui::SliderInt("Density", &density, 60, 100);
+            ImGui::End();
+            app->clear(sf::Color::White);
+
+            for (const auto& i : grid->gridVector) {
+                for (const auto& j : i) {
+                    app->draw(j.cell);
+                }
+            }
+
+            if (isRunning) {
+                grid->update(density);
+            }
+            ImGui::SFML::Render(*app);
+            app->display();
+            //sf::sleep(sf::milliseconds(window_delay));
         }
-        ImGui::SFML::Render(*app);
-        app->display();
-        //sf::sleep(sf::milliseconds(window_delay));
     }
 }
 void LevelApp::close() {
