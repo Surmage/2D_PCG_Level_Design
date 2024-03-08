@@ -60,6 +60,7 @@ struct LevelApp
 	bool isRunning;
 	int density;
 	sf::Vector2i mousePos;
+	std::vector<sf::Sprite>sprites;
 	//int typePlace;
 
 	bool open();

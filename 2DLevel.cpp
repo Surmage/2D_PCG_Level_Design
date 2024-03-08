@@ -306,6 +306,7 @@ void LevelApp::run() {
     texture.loadFromImage(image);  //Load Texture from image
     sf::Sprite sprite;
     sprite.setTexture(texture);
+    sprites.push_back(sprite);
     
 
     sf::View view = app->getDefaultView();
@@ -338,10 +339,10 @@ void LevelApp::run() {
 
                 break;
             case sf::Event::MouseButtonPressed:
-                if (cameraMoveOn)
+                if (cameraMoveOn && !ImGui::GetIO().WantCaptureMouse)
                     moving = true;
                 oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
-                sprite.setPosition(oldPos);
+                sprites[0].setPosition(oldPos);
                 
                 if (!isRunning && editOn && !ImGui::GetIO().WantCaptureMouse)
                 {
@@ -442,11 +443,12 @@ void LevelApp::run() {
 
         for (const auto& i : grid->gridVector) {
             for (const auto& j : i) {
-                app->draw(j.cell);
+                if(true) //WIP. if on screen
+                    app->draw(j.cell);
             }
         }
         
-        app->draw(sprite);
+        app->draw(sprites[0]);
 
         if (isRunning) {
             grid->update(density);
