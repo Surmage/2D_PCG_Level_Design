@@ -4,7 +4,7 @@
 
 const int width = 1080;
 const int height = 720;
-const sf::Vector2i gridSize(300, 300);
+sf::Vector2i gridSize(300, 300);
 const int minSize = 30;
 const float camD = 0.84; //camera depth
 constexpr int window_delay = 50;
@@ -67,14 +67,13 @@ Grid::Grid(int gridWidth, int gridHeight, bool random) {
     this->randomizeNeighbors = random;
 }
 
-void Grid::initGridVector(bool randomStates, int number) { //TODO: change to vertex array for optimization
-    gridVector.clear();
-    //gridVector.empty();
+void Grid::initGridVector(bool randomStates, int number) { //TODO: change to vertex array for optimization   
+
     if (!randomStates) {
         for (int i = 0; i < this->width; i++) {
             std::vector<Cell> cellVec;
             for (int j = 0; j < this->height; j++) {
-                cellVec.push_back(*new Cell(i, j, Cell::Type::WATER));
+                cellVec.push_back(Cell(i, j, Cell::Type::WATER));
             }
             gridVector.push_back(cellVec);
         }
@@ -86,18 +85,18 @@ void Grid::initGridVector(bool randomStates, int number) { //TODO: change to ver
             for (int j = 0; j < this->height; j++) {
                 int n = rand() % 3;
                 if(n == 0)
-                    cellVec.push_back(*new Cell(i, j, Cell::Type::WATER));
+                    cellVec.push_back(Cell(i, j, Cell::Type::WATER));
                 else if(n == 1)
-                    cellVec.push_back(*new Cell(i, j, Cell::Type::EARTH));
+                    cellVec.push_back(Cell(i, j, Cell::Type::EARTH));
                 else
-                    cellVec.push_back(*new Cell(i, j, Cell::Type::GRASS));
+                    cellVec.push_back(Cell(i, j, Cell::Type::GRASS));
                 
             }
             gridVector.push_back(cellVec);
         }
     }
 
-    //Not the most efficient but I just want to demonstrate the use of the Cell class, however this can be done in a single nested loop
+    //Not the most efficient
     for (int x = 0; x < gridSize.x; x++) {
         for (int y = 0; y < gridSize.y; y++) {
             gridVector[x][y].cell.setPosition(float(x) * gridVector[x][y].cell.getSize().x, float(y) * gridVector[x][y].cell.getSize().y);
@@ -217,8 +216,8 @@ bool Grid::checkPlusShape(int x, int y, std::vector<std::vector<Cell>>& gridVec)
 
 void Grid::update(int& density) {
     //std::vector<std::vector<Cell>> newGrid = gridCopy(gridVector);
-    for (int i = 0; i < gridSize.x; i++) {
-        for (int j = 0; j < gridSize.y; j++) {
+    for (int i = 0; i < this->width; i++) {
+        for (int j = 0; j < this->height; j++) {
             if ((gridVector[i][j].type == Cell::Type::WATER))
             {
                 if (countNeighborsDiff(i, j, 1) >= 4) { //water turn to land
@@ -228,8 +227,8 @@ void Grid::update(int& density) {
 
             }
 
-            else if (countNeighborsDiff(i, j, (int)(height * 0.018)) >= density) { //land spread
-                gridVector[i][j].setType(getCellNeighbors(i, j, (int)(height * 0.018))); //increased density means this gets triggered less
+            else if (countNeighborsDiff(i, j, (int)(this->height * 0.018)) >= density) { //land spread
+                gridVector[i][j].setType(getCellNeighbors(i, j, (int)(this->height * 0.018))); //increased density means this gets triggered less
                 continue;
             }
 
@@ -244,19 +243,22 @@ void Grid::update(int& density) {
     //this->gridVector = newGrid;
 }
 
-std::vector<std::vector<Cell>> Grid::gridCopy(const std::vector<std::vector<Cell>>& gridVec) {
-    std::vector<std::vector<Cell>> copy;
-    for (int i = 0; i < gridVector.size(); i++) {
-        std::vector<Cell> copyVec;
-        for (int j = 0; j < gridVector[i].size(); j++) {
-            copyVec.push_back(gridVec[i][j]);
-        }
-        copy.push_back(copyVec);
-    }
-    return copy;
-}
+//std::vector<std::vector<Cell>> Grid::gridCopy(const std::vector<std::vector<Cell>>& gridVec) {
+//    std::vector<std::vector<Cell>> copy;
+//    for (int i = 0; i < gridVector.size(); i++) {
+//        std::vector<Cell> copyVec;
+//        for (int j = 0; j < gridVector[i].size(); j++) {
+//            copyVec.push_back(gridVec[i][j]);
+//        }
+//        copy.push_back(copyVec);
+//    }
+//    return copy;
+//}
 bool Grid::resetGrid() {
-    initGridVector(true, 200);
+    for (int i = gridVector.size(); i-- > 0;) {
+        gridVector[i].clear();
+        gridVector[i].shrink_to_fit();
+    }
     return true;
 }
 
@@ -272,31 +274,32 @@ LevelApp::LevelApp() {
     isRunning = false;
     //typePlace = 0;
     density = 90;
+    generated = false;
 }
 LevelApp::~LevelApp() {
 
 }
 
+bool LevelApp::init() {
+    bool randomize = true;
+    //grid->resetGrid();
+    grid = std::make_shared<Grid>(gridSize.x, gridSize.y, randomize);
+    grid->initGridVector(randomize, 200);
+    
+    generated = true;
+    generatedX = gridSize.x;
+    generatedY = gridSize.y;
+    return true;
+}
+
 bool LevelApp::open()
 {
-    bool randomize = true;
-    grid = new Grid(gridSize.x, gridSize.y, randomize);
     //gameOfLife.run();
     //int extra = width <= minSize ? 15 : 0;
     this->app = new sf::RenderWindow(sf::VideoMode(int(width), int(height)), "Cellular Automata", sf::Style::Default);
     app->setFramerateLimit(60);
     ImGui::SFML::Init(*app);
-    grid->initGridVector(randomize, 200);
-    return 1;
-}
 
-void LevelApp::run() {   
-    sf::Clock deltaClock;
-    sf::Vector2f oldPos;
-    bool moving = false;
-    float zoom = 1;
-    bool cameraMoveOn = false;
-    bool editOn = false;
     sf::Image image;
     if (!image.loadFromFile("../images/red.png"))
     {
@@ -307,6 +310,17 @@ void LevelApp::run() {
     sf::Sprite sprite;
     sprite.setTexture(texture);
     sprites.push_back(sprite);
+
+    return 1;
+}
+
+void LevelApp::run() {   
+    sf::Clock deltaClock;
+    sf::Vector2f oldPos;
+    bool moving = false;
+    float zoom = 1;
+    bool cameraMoveOn = false;
+    bool editOn = false;
     
 
     sf::View view = app->getDefaultView();
@@ -319,111 +333,120 @@ void LevelApp::run() {
         while (app->pollEvent(event)) {
             ImGui::SFML::ProcessEvent(event);
             //"close requested" event: closes the window
-            switch (event.type)
-            {
-            case sf::Event::Closed:
-                app->close();
-                break;
-            case sf::Event::KeyPressed:
-                if (event.key.code == sf::Keyboard::E)
+            if (generated) {
+                switch (event.type)
                 {
-                    std::cout << "E is pressed! Begin Automata!" << std::endl;
-                    isRunning = true;
-                    //                            update(); <-- For testing purposes
-                }
-                if (event.key.code == sf::Keyboard::P)
-                {
-                    std::cout << "P is pressed! Automata has stopped/paused!" << std::endl;
-                    isRunning = false;
-                }
-
-                break;
-            case sf::Event::MouseButtonPressed:
-                if (cameraMoveOn && !ImGui::GetIO().WantCaptureMouse)
-                    moving = true;
-                oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
-                sprites[0].setPosition(oldPos);
-                
-                if (!isRunning && editOn && !ImGui::GetIO().WantCaptureMouse)
-                {
-                    if (event.mouseButton.button == sf::Mouse::Left)
-                    {
-                        //std::cout << event.mouseButton.x / Cell::cellSize << std::endl;
-                        if (oldPos.x <= gridSize.x * Cell::cellSize &&
-                            oldPos.x >= 0 &&
-                            oldPos.y <= gridSize.y * Cell::cellSize &&
-                            oldPos.y >= 0)
-                            grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(1);
-                        //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
-                        //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
-                    }
-                    if (event.mouseButton.button == sf::Mouse::Right)
-                    {
-                        //std::cout << event.mouseButton.x / Cell::cellSize  << std::endl;
-                        if (oldPos.x <= gridSize.x * Cell::cellSize &&
-                            oldPos.x >= 0 &&
-                            oldPos.y <= gridSize.y * Cell::cellSize &&
-                            oldPos.y >= 0)
-                            grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(0);
-                        //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
-                        //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
-
-                    }
-       
-                }
-                break;
-            case sf::Event::MouseButtonReleased:
-                // Mouse button is released, no longer move
-                if (event.mouseButton.button == 0) {
-                    moving = false;
-                }
-                break;
-            case sf::Event::MouseMoved:
-            {
-                mousePos = (sf::Vector2i)app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
-                // Ignore mouse movement unless a button is pressed (see above)
-                if (!moving || !cameraMoveOn)
+                case sf::Event::Closed:
+                    app->close();
                     break;
-                // Determine the new position in world coordinates
-                const sf::Vector2f newPos = app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
-                // Determine how the cursor has moved
-                // Swap these to invert the movement direction
-                const sf::Vector2f deltaPos = oldPos - newPos;
+                case sf::Event::KeyPressed:
+                    if (event.key.code == sf::Keyboard::E)
+                    {
+                        std::cout << "E is pressed! Begin Automata!" << std::endl;
+                        isRunning = true;
+                        //                            update(); <-- For testing purposes
+                    }
+                    if (event.key.code == sf::Keyboard::P)
+                    {
+                        std::cout << "P is pressed! Automata has stopped/paused!" << std::endl;
+                        isRunning = false;
+                    }
 
-                // Move our view accordingly and update the window
-                view.setCenter(view.getCenter() + deltaPos);
-                app->setView(view);
-
-                // Save the new position as the old one
-                // We're recalculating this, since we've changed the view
-                oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
-            }
-            break;
-
-            case sf::Event::MouseWheelScrolled:
-            {
-                if (!cameraMoveOn || moving)
                     break;
-                // Ignore the mouse wheel unless we're not moving
+                case sf::Event::MouseButtonPressed:
+                    if (cameraMoveOn && !ImGui::GetIO().WantCaptureMouse)
+                        moving = true;
+                    oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+                    sprites[0].setPosition(oldPos);
 
-                // Determine the scroll direction and adjust the zoom level
-                // Again, you can swap these to invert the direction
-                if (event.mouseWheelScroll.delta <= -1)
-                    zoom = std::min(5.f, zoom + .1f);
-                else if (event.mouseWheelScroll.delta >= 1)
-                    zoom = std::max(.1f, zoom - .1f);
+                    if (!isRunning && editOn && !ImGui::GetIO().WantCaptureMouse)
+                    {
+                        if (event.mouseButton.button == sf::Mouse::Left)
+                        {
+                            //std::cout << event.mouseButton.x / Cell::cellSize << std::endl;
+                            if (oldPos.x <= gridSize.x * Cell::cellSize &&
+                                oldPos.x >= 0 &&
+                                oldPos.y <= gridSize.y * Cell::cellSize &&
+                                oldPos.y >= 0)
+                                grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(1);
+                            //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
+                            //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
+                        }
+                        if (event.mouseButton.button == sf::Mouse::Right)
+                        {
+                            //std::cout << event.mouseButton.x / Cell::cellSize  << std::endl;
+                            if (oldPos.x <= gridSize.x * Cell::cellSize &&
+                                oldPos.x >= 0 &&
+                                oldPos.y <= gridSize.y * Cell::cellSize &&
+                                oldPos.y >= 0)
+                                grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(0);
+                            //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
+                            //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
 
-                // Update our view
-                view.setSize(app->getDefaultView().getSize()); // Reset the size
-                view.zoom(zoom); // Apply the zoom level (this transforms the view)
-                app->setView(view);
+                        }
+
+                    }
+                    break;
+                case sf::Event::MouseButtonReleased:
+                    // Mouse button is released, no longer move
+                    if (event.mouseButton.button == 0) {
+                        moving = false;
+                    }
+                    break;
+                case sf::Event::MouseMoved:
+                {
+                    mousePos = (sf::Vector2i)app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
+                    // Ignore mouse movement unless a button is pressed (see above)
+                    if (!moving || !cameraMoveOn)
+                        break;
+                    // Determine the new position in world coordinates
+                    const sf::Vector2f newPos = app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
+                    // Determine how the cursor has moved
+                    // Swap these to invert the movement direction
+                    const sf::Vector2f deltaPos = oldPos - newPos;
+
+                    // Move our view accordingly and update the window
+                    view.setCenter(view.getCenter() + deltaPos);
+                    app->setView(view);
+
+                    // Save the new position as the old one
+                    // We're recalculating this, since we've changed the view
+                    oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
+                }
+                break;
+
+                case sf::Event::MouseWheelScrolled:
+                {
+                    if (!cameraMoveOn || moving)
+                        break;
+                    // Ignore the mouse wheel unless we're not moving
+
+                    // Determine the scroll direction and adjust the zoom level
+                    // Again, you can swap these to invert the direction
+                    if (event.mouseWheelScroll.delta <= -1)
+                        zoom = std::min(5.f, zoom + .1f);
+                    else if (event.mouseWheelScroll.delta >= 1)
+                        zoom = std::max(.1f, zoom - .1f);
+
+                    // Update our view
+                    view.setSize(app->getDefaultView().getSize()); // Reset the size
+                    view.zoom(zoom); // Apply the zoom level (this transforms the view)
+                    app->setView(view);
+                }
+                break;
             }
-            break;
+            
 
 
             }
         }           
         ImGui::Text("Mouse position:(%i, %i)", mousePos.x, mousePos.y);
+        ImGui::InputInt("Width", &gridSize.x);
+        ImGui::InputInt("Height", &gridSize.y);
+        if (ImGui::Button("Generate")) {
+            isRunning = false;
+            init();
+        }
         if (ImGui::Button("Start")) {
             isRunning = !isRunning;
         }
@@ -433,26 +456,32 @@ void LevelApp::run() {
             moving = false;
             cameraMoveOn = false;
             grid->resetGrid();
+            generated = false;
         }
         
         app->clear(sf::Color::White);
+
         ImGui::Checkbox("Movement", &cameraMoveOn);
         ImGui::Checkbox("Edit", &editOn);
         ImGui::SliderInt("Density", &density, 80, 120);
+        
         ImGui::End();
 
-        for (const auto& i : grid->gridVector) {
-            for (const auto& j : i) {
-                if(true) //WIP. if on screen
-                    app->draw(j.cell);
+        if (generated) {
+            for (const auto& i : grid->gridVector) {
+                for (const auto& j : i) {
+                    if (true) //WIP. if on screen
+                        app->draw(j.cell);
+                }
+            }
+
+            app->draw(sprites[0]);
+
+            if (isRunning) {
+                grid->update(density);
             }
         }
         
-        app->draw(sprites[0]);
-
-        if (isRunning) {
-            grid->update(density);
-        }
         ImGui::SFML::Render(*app);
         app->display();
         //sf::sleep(sf::milliseconds(window_delay));

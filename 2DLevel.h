@@ -56,13 +56,16 @@ struct LevelApp
 	LevelApp();
 	~LevelApp();
 	sf::RenderWindow* app;
-	Grid* grid;
+	std::shared_ptr<Grid> grid;
 	bool isRunning;
 	int density;
+	bool generated;
+	int generatedX, generatedY;
 	sf::Vector2i mousePos;
 	std::vector<sf::Sprite>sprites;
 	//int typePlace;
 
+	bool init();
 	bool open();
 	void run();
 	void close();
