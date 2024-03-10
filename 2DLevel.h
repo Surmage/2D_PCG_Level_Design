@@ -30,6 +30,7 @@ struct Grid {
 	int32_t width;
 	bool randomizeNeighbors;
 	int density;
+	std::vector<sf::Sprite>sprites;
 
 	int countNeighborsSame(int x, int y, int areaSize);
 	int countNeighborsDiff(int x, int y, int areaSize);
@@ -61,10 +62,16 @@ struct LevelApp
 	int density;
 	bool generated;
 	int generatedX, generatedY;
+	int tileSize;
 	sf::Vector2i mousePos;
-	std::vector<sf::Sprite>sprites;
+	std::vector<sf::Texture>textures;
+	sf::Sprite sprite;
+	bool spritePlaceOn;
+	bool editOn;
+	
 	//int typePlace;
 
+	void guiGrid();
 	bool init();
 	bool open();
 	void run();

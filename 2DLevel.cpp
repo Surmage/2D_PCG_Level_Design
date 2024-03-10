@@ -275,9 +275,35 @@ LevelApp::LevelApp() {
     //typePlace = 0;
     density = 90;
     generated = false;
+    tileSize = 1;
+    spritePlaceOn = false;
+    editOn = false;
 }
 LevelApp::~LevelApp() {
 
+}
+
+void LevelApp::guiGrid() {
+    ImGui::BeginChild("Tileset", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar);
+    ImGui::InputInt("Tile Scale", &this->tileSize, 1);
+    
+    for (const auto& i : this->textures) {
+        ImTextureID tilesetTextureId = (ImTextureID)(intptr_t)i.getNativeHandle(); // Cast the texture ID to ImTextureID
+        if (ImGui::ImageButton((ImTextureID)tilesetTextureId, ImVec2(50, 50)) && editOn)
+        {
+            sf::Sprite sprite;
+            sprite.setTexture(i);
+            //sprite.setScale(sf::Vector2f(tileSize, tileSize));
+            spritePlaceOn = true;
+            this->sprite = sprite;
+            //grid->sprites.push_back(sprite);
+            //std::cout << grid->sprites.size() << std::endl;
+        }
+    }
+
+    
+
+    ImGui::EndChild();
 }
 
 bool LevelApp::init() {
@@ -307,9 +333,19 @@ bool LevelApp::open()
     }
     sf::Texture texture;
     texture.loadFromImage(image);  //Load Texture from image
-    sf::Sprite sprite;
-    sprite.setTexture(texture);
-    sprites.push_back(sprite);
+    textures.push_back(texture);
+
+    //sf::Image image2;
+    //if (!image2.loadFromFile("../images/derp.jpg"))
+    //{
+    //    // Error...
+    //}
+    //sf::Texture texture2;
+    //texture2.loadFromImage(image2);  //Load Texture from image
+    //textures.push_back(texture2);
+    /*sf::Sprite sprite;
+    sprite.setTexture(texture);   
+    sprites.push_back(sprite);*/
 
     return 1;
 }
@@ -320,9 +356,9 @@ void LevelApp::run() {
     bool moving = false;
     float zoom = 1;
     bool cameraMoveOn = false;
-    bool editOn = false;
     
-
+    
+    
     sf::View view = app->getDefaultView();
     //Run the program as long as the window is open
     while (app->isOpen()) {
@@ -357,29 +393,36 @@ void LevelApp::run() {
                     if (cameraMoveOn && !ImGui::GetIO().WantCaptureMouse)
                         moving = true;
                     oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
-                    sprites[0].setPosition(oldPos);
+                    //sprites[0].setPosition(oldPos);
 
                     if (!isRunning && editOn && !ImGui::GetIO().WantCaptureMouse)
                     {
                         if (event.mouseButton.button == sf::Mouse::Left)
                         {
-                            //std::cout << event.mouseButton.x / Cell::cellSize << std::endl;
-                            if (oldPos.x <= gridSize.x * Cell::cellSize &&
-                                oldPos.x >= 0 &&
-                                oldPos.y <= gridSize.y * Cell::cellSize &&
-                                oldPos.y >= 0)
-                                grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(1);
-                            //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
-                            //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
+                            if (!spritePlaceOn) {
+                                if (oldPos.x <= gridSize.x * Cell::cellSize &&
+                                    oldPos.x >= 0 &&
+                                    oldPos.y <= gridSize.y * Cell::cellSize &&
+                                    oldPos.y >= 0)
+                                    grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(1);
+                            }
+                            else {
+                                grid->sprites.push_back(sprite);
+                            }
+                            
                         }
                         if (event.mouseButton.button == sf::Mouse::Right)
                         {
+                            if (!spritePlaceOn) {
+                                if (oldPos.x <= gridSize.x * Cell::cellSize &&
+                                    oldPos.x >= 0 &&
+                                    oldPos.y <= gridSize.y * Cell::cellSize &&
+                                    oldPos.y >= 0)
+                                    grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(0);
+                            }
+                            spritePlaceOn = false;
                             //std::cout << event.mouseButton.x / Cell::cellSize  << std::endl;
-                            if (oldPos.x <= gridSize.x * Cell::cellSize &&
-                                oldPos.x >= 0 &&
-                                oldPos.y <= gridSize.y * Cell::cellSize &&
-                                oldPos.y >= 0)
-                                grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(0);
+                            
                             //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
                             //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
 
@@ -417,6 +460,13 @@ void LevelApp::run() {
 
                 case sf::Event::MouseWheelScrolled:
                 {
+                    if (spritePlaceOn) {
+                        if (event.mouseWheelScroll.delta >= 1)
+                            tileSize = std::min(15.f, tileSize + 1.f);
+                        else if (event.mouseWheelScroll.delta <= -1)
+                            tileSize = std::max(1.f, tileSize - 1.f);
+                    }
+
                     if (!cameraMoveOn || moving)
                         break;
                     // Ignore the mouse wheel unless we're not moving
@@ -434,15 +484,15 @@ void LevelApp::run() {
                     app->setView(view);
                 }
                 break;
-            }
-            
-
-
+                }
+           
             }
         }           
         ImGui::Text("Mouse position:(%i, %i)", mousePos.x, mousePos.y);
-        ImGui::InputInt("Width", &gridSize.x);
-        ImGui::InputInt("Height", &gridSize.y);
+        ImGui::InputInt("Width", &gridSize.x, 5);
+        ImGui::InputInt("Height", &gridSize.y, 5);
+        
+        
         if (ImGui::Button("Generate")) {
             isRunning = false;
             init();
@@ -464,22 +514,30 @@ void LevelApp::run() {
         ImGui::Checkbox("Movement", &cameraMoveOn);
         ImGui::Checkbox("Edit", &editOn);
         ImGui::SliderInt("Density", &density, 80, 120);
+        guiGrid();
         
         ImGui::End();
-
+        
         if (generated) {
+            
             for (const auto& i : grid->gridVector) {
                 for (const auto& j : i) {
                     if (true) //WIP. if on screen
                         app->draw(j.cell);
                 }
             }
-
-            app->draw(sprites[0]);
+            //sprites[0].setScale(sf::Vector2f(tileSize, tileSize));
+            for (const auto& i : grid->sprites)
+                app->draw(i);
 
             if (isRunning) {
                 grid->update(density);
             }
+        }
+        if (spritePlaceOn) {
+            sprite.setPosition(sf::Vector2f(mousePos));
+            sprite.setScale(sf::Vector2f(tileSize, tileSize));
+            app->draw(sprite);
         }
         
         ImGui::SFML::Render(*app);
