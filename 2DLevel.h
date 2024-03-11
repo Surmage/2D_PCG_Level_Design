@@ -10,11 +10,13 @@ struct Cell {
 		GRASS,
 		LAVA
 	};
-	constexpr static float cellSize = 6;
+	constexpr static float cellSize = 16;
 	int32_t x, y;
 	sf::Color color;
 	Type type;
-	sf::RectangleShape cell;
+	sf::Sprite cellWater;
+	sf::Sprite cellDirt;
+	sf::Sprite cellGrass;
 	bool isWalkable;
 
 	Cell();
@@ -31,12 +33,19 @@ struct Grid {
 	bool randomizeNeighbors;
 	int density;
 	std::vector<sf::Sprite>sprites;
+	sf::Texture dirt;
+	sf::Texture grass;
+	sf::Texture water;
+	sf::Vector2i start, end;
 
 	int countNeighborsSame(int x, int y, int areaSize);
 	int countNeighborsDiff(int x, int y, int areaSize);
 	int getCellNeighbors(int x, int y, int areaSize);
-	bool checkPlusShape(int x, int y, std::vector<std::vector<Cell>>& gridVec);
+	bool checkPlusShape(int x, int y, int l, std::vector<std::vector<Cell>>& gridVec);
+	bool checkPlusShapeFull(int x, int y, int l, std::vector<std::vector<Cell>>& gridVec);
 	void initGridVector(bool randomStates, int number);
+	void generatePoints();
+	
 
 	void setWidth(int width);
 	void setHeight(int height);
@@ -45,7 +54,8 @@ struct Grid {
 	static void deleteCell(int x, int y, std::vector<std::vector<Cell>>& gridVec);*/
 	bool resetGrid();
 
-	std::vector<std::vector<Cell>> gridCopy(const std::vector<std::vector<Cell>>& gridVec);
+	//std::vector<std::vector<Cell>> gridCopy(const std::vector<std::vector<Cell>>& gridVec);
+	void fillGaps(int areaSize);
 	void update(int& density);
 
 	Grid();

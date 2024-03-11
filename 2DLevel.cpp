@@ -19,7 +19,7 @@ Cell::Cell(int _x, int _y, Cell::Type _type) {
     this->x = _x;
     this->y = _y;
     this->type = _type;
-    cell.setSize(sf::Vector2f(cellSize, cellSize));
+    //cell.setSize(sf::Vector2f(cellSize, cellSize));
     isWalkable = false;
 }
 
@@ -32,17 +32,14 @@ void Cell::setType(int newType) {
     {
     case 0:
         type = Cell::Type::WATER;
-        cell.setFillColor(WATER);
         isWalkable = false;
         break;
     case 1:
         type = Cell::Type::EARTH;
-        cell.setFillColor(DIRT);
         isWalkable = true;
         break;
     case 2:
         type = Cell::Type::GRASS;
-        cell.setFillColor(GRASS);
         isWalkable = true;
         break;
     }
@@ -60,11 +57,63 @@ Grid::Grid() {
     this->width = 600;
     //this->isRunning = false;
     this->randomizeNeighbors = true;
+    sf::Image image;
+    if (!image.loadFromFile("../images/dirt.png"))
+    {
+        // Error...
+    }
+    sf::Texture texture;
+    texture.loadFromImage(image);  //Load Texture from image
+    this->dirt = texture;
+
+    sf::Image image2;
+    if (!image2.loadFromFile("../images/water.png"))
+    {
+        // Error...
+    }
+    sf::Texture texture2;
+    texture2.loadFromImage(image2);  //Load Texture from image
+    this->water = texture2;
+
+    sf::Image image3;
+    if (!image3.loadFromFile("../images/grass.png"))
+    {
+        // Error...
+    }
+    sf::Texture texture3;
+    texture3.loadFromImage(image3);  //Load Texture from image
+    this->grass = texture3;
 }
 Grid::Grid(int gridWidth, int gridHeight, bool random) {
     this->height = gridHeight;
     this->width = gridWidth;
     this->randomizeNeighbors = random;
+    sf::Image image;
+    if (!image.loadFromFile("../images/dirt.png"))
+    {
+        // Error...
+    }
+    sf::Texture texture;
+    texture.loadFromImage(image);  //Load Texture from image
+    this->dirt = texture;
+
+    sf::Image image2;
+    if (!image2.loadFromFile("../images/water.png"))
+    {
+        // Error...
+    }
+    sf::Texture texture2;
+    texture2.loadFromImage(image2);  //Load Texture from image
+    this->water = texture2;
+
+    sf::Image image3;
+    if (!image3.loadFromFile("../images/grass.png"))
+    {
+        // Error...
+    }
+    sf::Texture texture3;
+    texture3.loadFromImage(image3);  //Load Texture from image
+    this->grass = texture3;
 }
 
 void Grid::initGridVector(bool randomStates, int number) { //TODO: change to vertex array for optimization   
@@ -99,13 +148,15 @@ void Grid::initGridVector(bool randomStates, int number) { //TODO: change to ver
     //Not the most efficient
     for (int x = 0; x < gridSize.x; x++) {
         for (int y = 0; y < gridSize.y; y++) {
-            gridVector[x][y].cell.setPosition(float(x) * gridVector[x][y].cell.getSize().x, float(y) * gridVector[x][y].cell.getSize().y);
             //gridVector[x][y].cell.setSize(sf::Vector2f(10, 10));
             //gridVector[x][y].cell.setOutlineThickness(1);
             //gridVector[x][y].cell.setOutlineColor(GREY);
-            if (gridVector[x][y].type == Cell::Type::WATER) { gridVector[x][y].cell.setFillColor(WATER); }
-            else if(gridVector[x][y].type == Cell::Type::EARTH){ gridVector[x][y].cell.setFillColor(DIRT); }
-            else { gridVector[x][y].cell.setFillColor(GRASS); }
+            gridVector[x][y].cellWater = sf::Sprite(water);
+            gridVector[x][y].cellDirt = sf::Sprite(dirt); 
+            gridVector[x][y].cellGrass = sf::Sprite(grass); 
+            gridVector[x][y].cellWater.setPosition(float(x) * 16, float(y) * 16);
+            gridVector[x][y].cellDirt.setPosition(float(x) * 16, float(y) * 16);
+            gridVector[x][y].cellGrass.setPosition(float(x) * 16, float(y) * 16);
         }
     }
 }
@@ -199,11 +250,11 @@ int Grid::getCellNeighbors(int x, int y, int areaSize) {
     return 0;
 }
 
-bool Grid::checkPlusShape(int x, int y, std::vector<std::vector<Cell>>& gridVec) {
-    int xMin = x - 1 < 0 ? 0 : x - 1;
-    int xMax = x + 1 > this->width - 1 ? this->width - 1 : x + 1;
-    int yMin = y - 1 < 0 ? 0 : y - 1;
-    int yMax = y + 1 > this->height - 1 ? this->height - 1 : y + 1;
+bool Grid::checkPlusShape(int x, int y, int l, std::vector<std::vector<Cell>>& gridVec) {
+    int xMin = x - l < 0 ? 0 : x - l;
+    int xMax = x + l > this->width - 1 ? this->width - 1 : x + l;
+    int yMin = y - l < 0 ? 0 : y - l;
+    int yMax = y + l > this->height - 1 ? this->height - 1 : y + l;
 
     if ((gridVec[x][y].getState() == gridVec[xMin][y].getState() && xMin != 0)
         || (gridVec[x][y].getState() == gridVec[xMax][y].getState() && xMax != this->width-1)
@@ -214,27 +265,122 @@ bool Grid::checkPlusShape(int x, int y, std::vector<std::vector<Cell>>& gridVec)
     return false;
 }
 
+bool Grid::checkPlusShapeFull(int x, int y, int l, std::vector<std::vector<Cell>>& gridVec) {
+    int xMin = x - 1 < 0 ? 0 : x - 1;
+    int xMax = x + 1 > this->width - 1 ? this->width - 1 : x + 1;
+    int yMin = y - 1 < 0 ? 0 : y - 1;
+    int yMax = y + 1 > this->height - 1 ? this->height - 1 : y + 1;
+
+    if ((gridVec[x][y].getState() == gridVec[xMin][y].getState() && xMin != 0)
+        && (gridVec[x][y].getState() == gridVec[xMax][y].getState() && xMax != this->width - 1)
+        && (gridVec[x][y].getState() == gridVec[x][yMin].getState() && yMin != 0)
+        && (gridVec[x][y].getState() == gridVec[x][yMax].getState() && yMax != this->height - 1))
+        return true;
+
+    return false;
+}
+
+void Grid::fillGaps(int areaSize) {
+    int xMin;
+    int xMax;
+    int yMin;
+    int yMax;
+    int state;
+    int count = 0;
+    bool opp = false;
+    std::vector<sf::Vector2i>points;
+
+    for (int x = 0; x < this->width; x++) {
+        for (int y = 0; y < this->height; y++) {
+            if (gridVector[x][y].type == Cell::Type::WATER)
+                continue;
+            points.clear();
+            opp = false;
+
+            xMin = x - areaSize < 0 ? 0 : x - areaSize;
+            xMax = x + areaSize > this->width - 1 ? this->width - 1 : x + areaSize;
+            yMin = y - areaSize < 0 ? 0 : y - areaSize;
+            yMax = y + areaSize > this->height - 1 ? this->height - 1 : y + areaSize;
+            
+            state = gridVector[x][y].getState();
+
+            for (int i = xMin; i <= xMax; i++) {
+                for (int j = yMin; j <= yMax; j++) {
+                    if (!(i == x && j == y)) {
+                        if (gridVector[i][j].getState() != state && !opp) {
+                            opp = true;
+                        }
+                        else if (gridVector[i][j].getState() == state && opp) {
+                            count++;
+                            points.push_back(sf::Vector2i(i, j));
+                        }
+                    }
+                }
+            }
+
+            //draw towards it
+            for (const sf::Vector2i p : points) { 
+                for (int i = x; i-- > p.x;) { //x
+                    for (int j = y; j-- > p.y;) { //y
+                        gridVector[i][j].setType(state);
+                    }
+                    
+                }   
+            }
+           
+            
+        }
+    }
+    for (int x = 0; x < this->width; x++) {
+        for (int y = 0; y < this->height; y++) {
+            if (!checkPlusShape(x, y, 1, gridVector)) //remove single cells with no same neighbors in plus shape
+            {
+                int state = getCellNeighbors(x, y, 1);
+                gridVector[x][y].setType(state);
+            }
+        }
+    }
+    for (int x = 0; x < this->width; x++) {
+        for (int y = 0; y < this->height; y++) {
+            if (gridVector[x][y].type == Cell::Type::WATER && countNeighborsDiff(x, y, 2) >= 8) {
+                int state = getCellNeighbors(x, y, 2);
+                gridVector[x][y].setType(state);
+            }
+
+            //if (!checkPlusShape(x, y, 1, gridVector)) //remove single cells with no same neighbors in plus shape
+            //{
+            //    gridVector[x][y].setType(getCellNeighbors(x, y, 1));
+            //}
+        }
+    }
+    //look 3 points to each direction
+
+    
+}
+
 void Grid::update(int& density) {
-    //std::vector<std::vector<Cell>> newGrid = gridCopy(gridVector);
     for (int i = 0; i < this->width; i++) {
         for (int j = 0; j < this->height; j++) {
             if ((gridVector[i][j].type == Cell::Type::WATER))
             {
-                if (countNeighborsDiff(i, j, 1) >= 4) { //water turn to land
-                    gridVector[i][j].setType(getCellNeighbors(i, j, 1));
+                if (countNeighborsDiff(i, j, (int)(this->height * 0.018)) >= density) { //water turn to land
+                    int state = getCellNeighbors(i, j, 3);
+                    gridVector[i][j].setType(state);
                     continue;
                 }
 
             }
 
             else if (countNeighborsDiff(i, j, (int)(this->height * 0.018)) >= density) { //land spread
-                gridVector[i][j].setType(getCellNeighbors(i, j, (int)(this->height * 0.018))); //increased density means this gets triggered less
+                int state = getCellNeighbors(i, j, (int)(this->height * 0.018));
+                gridVector[i][j].setType(state); //increased density means this gets triggered less
                 continue;
             }
 
-            if (countNeighborsDiff(i, j, 1) >= 4 && !checkPlusShape(i, j, gridVector)) //remove single cells with no same neighbors in plus shape
+            else if (countNeighborsDiff(i, j, 1) >= 4 && !checkPlusShape(i, j, 1, gridVector)) //remove single cells with no same neighbors in plus shape
             {
-                gridVector[i][j].setType(getCellNeighbors(i, j, 1));
+                int state = getCellNeighbors(i, j, 1);                
+                gridVector[i][j].setType(state);
                 continue;
             }         
         }
@@ -268,6 +414,51 @@ void Grid::setWidth(int gWidth) {
 
 void Grid::setHeight(int gHeight) {
     this->height = gHeight;
+}
+
+void Grid::generatePoints() {
+    srand(time(nullptr));
+    int n = (rand() % 5) + 1;
+    int n2 = (rand() % 5) + 1;
+    int x = gridSize.x / n2;
+    int y = gridSize.y / n;
+    bool foundS = false, foundE = false;
+    
+    for (int i = y; i < this->height; i++) {
+        for (int j = x; j < this->width; j++) {
+            if (!gridVector[j][i].isWalkable)
+                continue;
+            if (checkPlusShape(j, i, 1, gridVector)) {
+                start = sf::Vector2i(j, i);
+                gridVector[j][i].cellDirt = sf::Sprite(dirt);
+                foundS = true;
+                std::cout << "Start: " << start.x << " " << start.y
+                    << std::endl;
+                break;
+            }
+        }
+        if (foundS)
+            break;
+    }
+
+    for (int i = gridSize.y - y; i-- > 0;) {
+        for (int j = gridSize.x - x; j-- > 0;) {
+            if (checkPlusShape(j, i, 1, gridVector)) {
+                end = sf::Vector2i(j, i);
+                gridVector[j][i].cellDirt = sf::Sprite(dirt);
+                foundE = true;
+                std::cout 
+                    << "End: " << end.x << " " << end.y << std::endl;
+                break;
+            }
+        }
+        if (foundE)
+            break;
+    }
+    if (!foundS || !foundE)
+        std::cout << "Failed" << std::endl;
+    
+    
 }
 
 LevelApp::LevelApp() {
@@ -335,14 +526,23 @@ bool LevelApp::open()
     texture.loadFromImage(image);  //Load Texture from image
     textures.push_back(texture);
 
-    //sf::Image image2;
-    //if (!image2.loadFromFile("../images/derp.jpg"))
-    //{
-    //    // Error...
-    //}
-    //sf::Texture texture2;
-    //texture2.loadFromImage(image2);  //Load Texture from image
-    //textures.push_back(texture2);
+    sf::Image image2;
+    if (!image2.loadFromFile("../images/test.png"))
+    {
+        // Error...
+    }
+    sf::Texture texture2;
+    texture2.loadFromImage(image2);  //Load Texture from image
+    textures.push_back(texture2);
+
+    sf::Image image3;
+    if (!image3.loadFromFile("../images/dirt.png"))
+    {
+        // Error...
+    }
+    sf::Texture texture3;
+    texture3.loadFromImage(image3);  //Load Texture from image
+    textures.push_back(texture3);
     /*sf::Sprite sprite;
     sprite.setTexture(texture);   
     sprites.push_back(sprite);*/
@@ -356,6 +556,7 @@ void LevelApp::run() {
     bool moving = false;
     float zoom = 1;
     bool cameraMoveOn = false;
+    float rotateImage = 0;
     
     
     
@@ -379,13 +580,14 @@ void LevelApp::run() {
                     if (event.key.code == sf::Keyboard::E)
                     {
                         std::cout << "E is pressed! Begin Automata!" << std::endl;
-                        isRunning = true;
+                        grid->sprites.erase(grid->sprites.begin() + 2);
+                        //isRunning = true;
                         //                            update(); <-- For testing purposes
                     }
                     if (event.key.code == sf::Keyboard::P)
                     {
                         std::cout << "P is pressed! Automata has stopped/paused!" << std::endl;
-                        isRunning = false;
+                        //isRunning = false;
                     }
 
                     break;
@@ -462,9 +664,11 @@ void LevelApp::run() {
                 {
                     if (spritePlaceOn) {
                         if (event.mouseWheelScroll.delta >= 1)
-                            tileSize = std::min(15.f, tileSize + 1.f);
+                            sprite.rotate(5);
+                            //rotateImage = std::min(15.f, rotateImage + 1.f);
                         else if (event.mouseWheelScroll.delta <= -1)
-                            tileSize = std::max(1.f, tileSize - 1.f);
+                            sprite.rotate(-5);
+                            //rotateImage = std::max(1.f, rotateImage - 1.f);
                     }
 
                     if (!cameraMoveOn || moving)
@@ -508,6 +712,12 @@ void LevelApp::run() {
             grid->resetGrid();
             generated = false;
         }
+        if (ImGui::Button("Fill")) {
+            grid->fillGaps(3);
+        }
+        if (ImGui::Button("Generate points")) {
+            grid->generatePoints();
+        }
         
         app->clear(sf::Color::White);
 
@@ -519,11 +729,14 @@ void LevelApp::run() {
         ImGui::End();
         
         if (generated) {
-            
             for (const auto& i : grid->gridVector) {
                 for (const auto& j : i) {
-                    if (true) //WIP. if on screen
-                        app->draw(j.cell);
+                    if (j.type == Cell::Type::EARTH)
+                        app->draw(j.cellDirt);
+                    else if (j.type == Cell::Type::GRASS)
+                        app->draw(j.cellGrass);
+                    else 
+                        app->draw(j.cellWater);
                 }
             }
             //sprites[0].setScale(sf::Vector2f(tileSize, tileSize));
@@ -535,10 +748,14 @@ void LevelApp::run() {
             }
         }
         if (spritePlaceOn) {
+            sprite.setOrigin(sf::Vector2f(0.5f*tileSize, 0.5f*tileSize));
             sprite.setPosition(sf::Vector2f(mousePos));
+           
             sprite.setScale(sf::Vector2f(tileSize, tileSize));
+            
             app->draw(sprite);
         }
+        
         
         ImGui::SFML::Render(*app);
         app->display();
