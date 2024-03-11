@@ -114,6 +114,15 @@ Grid::Grid(int gridWidth, int gridHeight, bool random) {
     sf::Texture texture3;
     texture3.loadFromImage(image3);  //Load Texture from image
     this->grass = texture3;
+
+    sf::Image image4;
+    if (!image4.loadFromFile("../images/red.png"))
+    {
+        // Error...
+    }
+    sf::Texture texture4;
+    texture4.loadFromImage(image4);  //Load Texture from image
+    this->point = texture4;
 }
 
 void Grid::initGridVector(bool randomStates, int number) { //TODO: change to vertex array for optimization   
@@ -154,9 +163,11 @@ void Grid::initGridVector(bool randomStates, int number) { //TODO: change to ver
             gridVector[x][y].cellWater = sf::Sprite(water);
             gridVector[x][y].cellDirt = sf::Sprite(dirt); 
             gridVector[x][y].cellGrass = sf::Sprite(grass); 
+            gridVector[x][y].point = sf::Sprite(point);
             gridVector[x][y].cellWater.setPosition(float(x) * 16, float(y) * 16);
             gridVector[x][y].cellDirt.setPosition(float(x) * 16, float(y) * 16);
             gridVector[x][y].cellGrass.setPosition(float(x) * 16, float(y) * 16);
+            gridVector[x][y].point.setPosition(float(x) * 16, float(y) * 16);
         }
     }
 }
@@ -428,9 +439,11 @@ void Grid::generatePoints() {
         for (int j = x; j < this->width; j++) {
             if (!gridVector[j][i].isWalkable)
                 continue;
-            if (checkPlusShape(j, i, 1, gridVector)) {
+            if (checkPlusShape(j, i, 1, gridVector) && gridVector[j][i].type != Cell::Type::WATER) {
                 start = sf::Vector2i(j, i);
-                gridVector[j][i].cellDirt = sf::Sprite(dirt);
+                gridVector[j][i].type = Cell::Type::POINT;
+                gridVector[j][i].point.setScale(sf::Vector2f(200, 200));
+                
                 foundS = true;
                 std::cout << "Start: " << start.x << " " << start.y
                     << std::endl;
@@ -443,9 +456,10 @@ void Grid::generatePoints() {
 
     for (int i = gridSize.y - y; i-- > 0;) {
         for (int j = gridSize.x - x; j-- > 0;) {
-            if (checkPlusShape(j, i, 1, gridVector)) {
+            if (checkPlusShape(j, i, 1, gridVector) && gridVector[j][i].type != Cell::Type::WATER) {
                 end = sf::Vector2i(j, i);
-                gridVector[j][i].cellDirt = sf::Sprite(dirt);
+                gridVector[j][i].type = Cell::Type::POINT;
+                gridVector[j][i].point.setScale(sf::Vector2f(200, 200));
                 foundE = true;
                 std::cout 
                     << "End: " << end.x << " " << end.y << std::endl;
@@ -527,7 +541,7 @@ bool LevelApp::open()
     textures.push_back(texture);
 
     sf::Image image2;
-    if (!image2.loadFromFile("../images/test.png"))
+    if (!image2.loadFromFile("../images/bridge.png"))
     {
         // Error...
     }
@@ -543,6 +557,15 @@ bool LevelApp::open()
     sf::Texture texture3;
     texture3.loadFromImage(image3);  //Load Texture from image
     textures.push_back(texture3);
+
+    sf::Image image4;
+    if (!image4.loadFromFile("../images/pine.png"))
+    {
+        // Error...
+    }
+    sf::Texture texture4;
+    texture4.loadFromImage(image4);  //Load Texture from image
+    textures.push_back(texture4);
     /*sf::Sprite sprite;
     sprite.setTexture(texture);   
     sprites.push_back(sprite);*/
@@ -735,8 +758,10 @@ void LevelApp::run() {
                         app->draw(j.cellDirt);
                     else if (j.type == Cell::Type::GRASS)
                         app->draw(j.cellGrass);
-                    else 
+                    else if (j.type == Cell::Type::WATER)
                         app->draw(j.cellWater);
+                    else
+                        app->draw(j.point);
                 }
             }
             //sprites[0].setScale(sf::Vector2f(tileSize, tileSize));

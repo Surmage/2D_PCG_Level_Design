@@ -8,7 +8,7 @@ struct Cell {
 		WATER,
 		EARTH,
 		GRASS,
-		LAVA
+		POINT
 	};
 	constexpr static float cellSize = 16;
 	int32_t x, y;
@@ -17,6 +17,7 @@ struct Cell {
 	sf::Sprite cellWater;
 	sf::Sprite cellDirt;
 	sf::Sprite cellGrass;
+	sf::Sprite point;
 	bool isWalkable;
 
 	Cell();
@@ -36,6 +37,7 @@ struct Grid {
 	sf::Texture dirt;
 	sf::Texture grass;
 	sf::Texture water;
+	sf::Texture point;
 	sf::Vector2i start, end;
 
 	int countNeighborsSame(int x, int y, int areaSize);
