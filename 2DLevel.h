@@ -56,7 +56,7 @@ struct Grid {
 	static void deleteCell(int x, int y, std::vector<std::vector<Cell>>& gridVec);*/
 	bool resetGrid();
 
-	//std::vector<std::vector<Cell>> gridCopy(const std::vector<std::vector<Cell>>& gridVec);
+	std::vector<std::vector<Cell>> gridCopy(const std::vector<std::vector<Cell>>& gridVec);
 	void fillGaps(int areaSize);
 	void update(int& density);
 

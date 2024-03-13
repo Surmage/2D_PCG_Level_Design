@@ -300,6 +300,7 @@ void Grid::fillGaps(int areaSize) {
     int count = 0;
     bool opp = false;
     std::vector<sf::Vector2i>points;
+    std::vector<std::vector<Cell>> newGrid = gridCopy(gridVector);
 
     for (int x = 0; x < this->width; x++) {
         for (int y = 0; y < this->height; y++) {
@@ -333,7 +334,7 @@ void Grid::fillGaps(int areaSize) {
             for (const sf::Vector2i p : points) { 
                 for (int i = x; i-- > p.x;) { //x
                     for (int j = y; j-- > p.y;) { //y
-                        gridVector[i][j].setType(state);
+                        newGrid[i][j].setType(state);
                     }
                     
                 }   
@@ -342,20 +343,12 @@ void Grid::fillGaps(int areaSize) {
             
         }
     }
-    for (int x = 0; x < this->width; x++) {
-        for (int y = 0; y < this->height; y++) {
-            if (!checkPlusShape(x, y, 1, gridVector)) //remove single cells with no same neighbors in plus shape
-            {
-                int state = getCellNeighbors(x, y, 1);
-                gridVector[x][y].setType(state);
-            }
-        }
-    }
+   
     for (int x = 0; x < this->width; x++) {
         for (int y = 0; y < this->height; y++) {
             if (gridVector[x][y].type == Cell::Type::WATER && countNeighborsDiff(x, y, 2) >= 8) {
                 int state = getCellNeighbors(x, y, 2);
-                gridVector[x][y].setType(state);
+                newGrid[x][y].setType(state);
             }
 
             //if (!checkPlusShape(x, y, 1, gridVector)) //remove single cells with no same neighbors in plus shape
@@ -364,8 +357,17 @@ void Grid::fillGaps(int areaSize) {
             //}
         }
     }
+    for (int x = 0; x < this->width; x++) {
+        for (int y = 0; y < this->height; y++) {
+            if (!checkPlusShape(x, y, 1, newGrid)) //remove single cells with no same neighbors in plus shape
+            {
+                int state = getCellNeighbors(x, y, 1);
+                newGrid[x][y].setType(state);
+            }
+        }
+    }
     //look 3 points to each direction
-
+    this->gridVector = newGrid;
     
 }
 
@@ -400,17 +402,17 @@ void Grid::update(int& density) {
     //this->gridVector = newGrid;
 }
 
-//std::vector<std::vector<Cell>> Grid::gridCopy(const std::vector<std::vector<Cell>>& gridVec) {
-//    std::vector<std::vector<Cell>> copy;
-//    for (int i = 0; i < gridVector.size(); i++) {
-//        std::vector<Cell> copyVec;
-//        for (int j = 0; j < gridVector[i].size(); j++) {
-//            copyVec.push_back(gridVec[i][j]);
-//        }
-//        copy.push_back(copyVec);
-//    }
-//    return copy;
-//}
+std::vector<std::vector<Cell>> Grid::gridCopy(const std::vector<std::vector<Cell>>& gridVec) {
+    std::vector<std::vector<Cell>> copy;
+    for (int i = 0; i < gridVector.size(); i++) {
+        std::vector<Cell> copyVec;
+        for (int j = 0; j < gridVector[i].size(); j++) {
+            copyVec.push_back(gridVec[i][j]);
+        }
+        copy.push_back(copyVec);
+    }
+    return copy;
+}
 bool Grid::resetGrid() {
     for (int i = gridVector.size(); i-- > 0;) {
         gridVector[i].clear();
@@ -442,7 +444,7 @@ void Grid::generatePoints() {
             if (checkPlusShape(j, i, 1, gridVector) && gridVector[j][i].type != Cell::Type::WATER) {
                 start = sf::Vector2i(j, i);
                 gridVector[j][i].type = Cell::Type::POINT;
-                gridVector[j][i].point.setScale(sf::Vector2f(200, 200));
+                //gridVector[j][i].point.setScale(sf::Vector2f(200, 200));
                 
                 foundS = true;
                 std::cout << "Start: " << start.x << " " << start.y
@@ -459,7 +461,7 @@ void Grid::generatePoints() {
             if (checkPlusShape(j, i, 1, gridVector) && gridVector[j][i].type != Cell::Type::WATER) {
                 end = sf::Vector2i(j, i);
                 gridVector[j][i].type = Cell::Type::POINT;
-                gridVector[j][i].point.setScale(sf::Vector2f(200, 200));
+                //gridVector[j][i].point.setScale(sf::Vector2f(200, 200));
                 foundE = true;
                 std::cout 
                     << "End: " << end.x << " " << end.y << std::endl;
@@ -580,8 +582,6 @@ void LevelApp::run() {
     float zoom = 1;
     bool cameraMoveOn = false;
     float rotateImage = 0;
-    
-    
     
     sf::View view = app->getDefaultView();
     //Run the program as long as the window is open
