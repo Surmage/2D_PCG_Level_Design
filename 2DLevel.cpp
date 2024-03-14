@@ -500,7 +500,7 @@ void LevelApp::guiGrid() {
         {
             sf::Sprite sprite;
             sprite.setTexture(i);
-            //sprite.setScale(sf::Vector2f(tileSize, tileSize));
+            //sprite.setOrigin(sf::Vector2f(25.f, 25.f));
             spritePlaceOn = true;
             this->sprite = sprite;
             //grid->sprites.push_back(sprite);
@@ -589,132 +589,138 @@ void LevelApp::run() {
         //Check all the window's events that were triggered since the last iteration of the loop
         ImGui::SFML::Update(*app, deltaClock.restart());
         ImGui::Begin("Imgui");
+        
         sf::Event event{};
-        while (app->pollEvent(event)) {
+        while (app->pollEvent(event)) { //maybe TODO: make into a function
             ImGui::SFML::ProcessEvent(event);
             //"close requested" event: closes the window
-            if (generated) {
-                switch (event.type)
+            if (!generated) {
+                break;
+            }           
+            switch (event.type)
+            {
+            case sf::Event::Closed:
+                app->close();
+                break;
+            case sf::Event::KeyPressed:
+                if (event.key.code == sf::Keyboard::Escape)
                 {
-                case sf::Event::Closed:
-                    app->close();
-                    break;
-                case sf::Event::KeyPressed:
-                    if (event.key.code == sf::Keyboard::E)
-                    {
-                        std::cout << "E is pressed! Begin Automata!" << std::endl;
-                        grid->sprites.erase(grid->sprites.begin() + 2);
-                        //isRunning = true;
-                        //                            update(); <-- For testing purposes
-                    }
-                    if (event.key.code == sf::Keyboard::P)
-                    {
-                        std::cout << "P is pressed! Automata has stopped/paused!" << std::endl;
-                        //isRunning = false;
-                    }
+                    moving = false;
+                    cameraMoveOn = false;
+                    isRunning = false;
+                }
 
-                    break;
-                case sf::Event::MouseButtonPressed:
-                    if (cameraMoveOn && !ImGui::GetIO().WantCaptureMouse)
-                        moving = true;
-                    oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
-                    //sprites[0].setPosition(oldPos);
+                break;
+            case sf::Event::MouseButtonPressed:
+                if (cameraMoveOn && !ImGui::GetIO().WantCaptureMouse)
+                    moving = true;
+                oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+                //sprites[0].setPosition(oldPos);
 
-                    if (!isRunning && editOn && !ImGui::GetIO().WantCaptureMouse)
-                    {
-                        if (event.mouseButton.button == sf::Mouse::Left)
-                        {
-                            if (!spritePlaceOn) {
-                                if (oldPos.x <= gridSize.x * Cell::cellSize &&
-                                    oldPos.x >= 0 &&
-                                    oldPos.y <= gridSize.y * Cell::cellSize &&
-                                    oldPos.y >= 0)
-                                    grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(1);
-                            }
-                            else {
-                                grid->sprites.push_back(sprite);
-                            }
-                            
-                        }
-                        if (event.mouseButton.button == sf::Mouse::Right)
-                        {
-                            if (!spritePlaceOn) {
-                                if (oldPos.x <= gridSize.x * Cell::cellSize &&
-                                    oldPos.x >= 0 &&
-                                    oldPos.y <= gridSize.y * Cell::cellSize &&
-                                    oldPos.y >= 0)
-                                    grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(0);
-                            }
-                            spritePlaceOn = false;
-                            //std::cout << event.mouseButton.x / Cell::cellSize  << std::endl;
-                            
-                            //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
-                            //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
-
-                        }
-
-                    }
-                    break;
-                case sf::Event::MouseButtonReleased:
-                    // Mouse button is released, no longer move
-                    if (event.mouseButton.button == 0) {
-                        moving = false;
-                    }
-                    break;
-                case sf::Event::MouseMoved:
+                if (!isRunning && editOn && !ImGui::GetIO().WantCaptureMouse)
                 {
-                    mousePos = (sf::Vector2i)app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
-                    // Ignore mouse movement unless a button is pressed (see above)
-                    if (!moving || !cameraMoveOn)
-                        break;
-                    // Determine the new position in world coordinates
-                    const sf::Vector2f newPos = app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
-                    // Determine how the cursor has moved
-                    // Swap these to invert the movement direction
-                    const sf::Vector2f deltaPos = oldPos - newPos;
+                    if (event.mouseButton.button == sf::Mouse::Left)
+                    {
+                        if (!spritePlaceOn) {
+                            if (oldPos.x <= gridSize.x * Cell::cellSize &&
+                                oldPos.x >= 0 &&
+                                oldPos.y <= gridSize.y * Cell::cellSize &&
+                                oldPos.y >= 0)
+                                grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(1);
+                        }
+                        else {
+                            grid->sprites.push_back(sprite);
+                        }
+                            
+                    }
+                    if (event.mouseButton.button == sf::Mouse::Right)
+                    {
+                        if (!spritePlaceOn) {
+                            for (int i = 0; i < grid->sprites.size(); i++) {
+                                if (grid->sprites[i].getGlobalBounds().contains(oldPos)) {
+                                    grid->sprites.erase(grid->sprites.begin() + i);
+                                    goto out;
+                                }
+                            }
+                                
+                            if (oldPos.x <= gridSize.x * Cell::cellSize &&
+                                oldPos.x >= 0 &&
+                                oldPos.y <= gridSize.y * Cell::cellSize &&
+                                oldPos.y >= 0)
+                                grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(0);       
+                        }
+                        spritePlaceOn = false;
+                            
+                        //std::cout << event.mouseButton.x / Cell::cellSize  << std::endl;
+                            
+                        //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
+                        //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
 
-                    // Move our view accordingly and update the window
-                    view.setCenter(view.getCenter() + deltaPos);
-                    app->setView(view);
+                    }
 
-                    // Save the new position as the old one
-                    // We're recalculating this, since we've changed the view
-                    oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
                 }
                 break;
-
-                case sf::Event::MouseWheelScrolled:
-                {
-                    if (spritePlaceOn) {
-                        if (event.mouseWheelScroll.delta >= 1)
-                            sprite.rotate(5);
-                            //rotateImage = std::min(15.f, rotateImage + 1.f);
-                        else if (event.mouseWheelScroll.delta <= -1)
-                            sprite.rotate(-5);
-                            //rotateImage = std::max(1.f, rotateImage - 1.f);
-                    }
-
-                    if (!cameraMoveOn || moving)
-                        break;
-                    // Ignore the mouse wheel unless we're not moving
-
-                    // Determine the scroll direction and adjust the zoom level
-                    // Again, you can swap these to invert the direction
-                    if (event.mouseWheelScroll.delta <= -1)
-                        zoom = std::min(5.f, zoom + .1f);
-                    else if (event.mouseWheelScroll.delta >= 1)
-                        zoom = std::max(.1f, zoom - .1f);
-
-                    // Update our view
-                    view.setSize(app->getDefaultView().getSize()); // Reset the size
-                    view.zoom(zoom); // Apply the zoom level (this transforms the view)
-                    app->setView(view);
+            case sf::Event::MouseButtonReleased:
+                // Mouse button is released, no longer move
+                if (event.mouseButton.button == 0) {
+                    moving = false;
                 }
                 break;
-                }
-           
+            case sf::Event::MouseMoved:
+            {
+                mousePos = (sf::Vector2i)app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
+                // Ignore mouse movement unless a button is pressed (see above)
+                if (!moving || !cameraMoveOn)
+                    break;
+                // Determine the new position in world coordinates
+                const sf::Vector2f newPos = app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
+                // Determine how the cursor has moved
+                // Swap these to invert the movement direction
+                const sf::Vector2f deltaPos = oldPos - newPos;
+
+                // Move our view accordingly and update the window
+                view.setCenter(view.getCenter() + deltaPos);
+                app->setView(view);
+
+                // Save the new position as the old one
+                // We're recalculating this, since we've changed the view
+                oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
             }
-        }           
+            break;
+
+            case sf::Event::MouseWheelScrolled:
+            {
+                if (spritePlaceOn) {
+                    if (event.mouseWheelScroll.delta >= 1)
+                        sprite.rotate(5);
+                        //rotateImage = std::min(15.f, rotateImage + 1.f);
+                    else if (event.mouseWheelScroll.delta <= -1)
+                        sprite.rotate(-5);
+                        //rotateImage = std::max(1.f, rotateImage - 1.f);
+                }
+
+                if (!cameraMoveOn || moving)
+                    break;
+                // Ignore the mouse wheel unless we're not moving
+
+                // Determine the scroll direction and adjust the zoom level
+                // Again, you can swap these to invert the direction
+                if (event.mouseWheelScroll.delta <= -1)
+                    zoom = std::min(5.f, zoom + .1f);
+                else if (event.mouseWheelScroll.delta >= 1)
+                    zoom = std::max(.1f, zoom - .1f);
+
+                // Update our view
+                view.setSize(app->getDefaultView().getSize()); // Reset the size
+                view.zoom(zoom); // Apply the zoom level (this transforms the view)
+                app->setView(view);
+            }
+            break;
+            }
+           
+            
+        }
+        out:
         ImGui::Text("Mouse position:(%i, %i)", mousePos.x, mousePos.y);
         ImGui::InputInt("Width", &gridSize.x, 5);
         ImGui::InputInt("Height", &gridSize.y, 5);
