@@ -1,6 +1,7 @@
 #include "2DLevel.h"
 #include "imgui.h"
 #include "imgui-SFML.h"
+#include <filesystem>
 
 const int width = 1080;
 const int height = 720;
@@ -8,10 +9,6 @@ sf::Vector2i gridSize(300, 300);
 const int minSize = 30;
 const float camD = 0.84; //camera depth
 constexpr int window_delay = 50;
-const sf::Color GREY(169, 169, 169);
-const sf::Color DIRT(153, 76, 0);
-const sf::Color WATER(51, 255, 255);
-const sf::Color GRASS(0, 204, 0);
 
 Cell::Cell(){}
 
@@ -58,7 +55,7 @@ Grid::Grid() {
     //this->isRunning = false;
     this->randomizeNeighbors = true;
     sf::Image image;
-    if (!image.loadFromFile("../images/dirt.png"))
+    if (!image.loadFromFile("images/tiles/dirt.png"))
     {
         // Error...
     }
@@ -67,7 +64,7 @@ Grid::Grid() {
     this->dirt = texture;
 
     sf::Image image2;
-    if (!image2.loadFromFile("../images/water.png"))
+    if (!image2.loadFromFile("images/tiles/water.png"))
     {
         // Error...
     }
@@ -76,7 +73,7 @@ Grid::Grid() {
     this->water = texture2;
 
     sf::Image image3;
-    if (!image3.loadFromFile("../images/grass.png"))
+    if (!image3.loadFromFile("images/tiles/grass.png"))
     {
         // Error...
     }
@@ -89,7 +86,7 @@ Grid::Grid(int gridWidth, int gridHeight, bool random) {
     this->width = gridWidth;
     this->randomizeNeighbors = random;
     sf::Image image;
-    if (!image.loadFromFile("../images/dirt.png"))
+    if (!image.loadFromFile("images/tiles/dirt.png"))
     {
         // Error...
     }
@@ -98,7 +95,7 @@ Grid::Grid(int gridWidth, int gridHeight, bool random) {
     this->dirt = texture;
 
     sf::Image image2;
-    if (!image2.loadFromFile("../images/water.png"))
+    if (!image2.loadFromFile("images/tiles/water.png"))
     {
         // Error...
     }
@@ -107,7 +104,7 @@ Grid::Grid(int gridWidth, int gridHeight, bool random) {
     this->water = texture2;
 
     sf::Image image3;
-    if (!image3.loadFromFile("../images/grass.png"))
+    if (!image3.loadFromFile("images/tiles/grass.png"))
     {
         // Error...
     }
@@ -116,7 +113,7 @@ Grid::Grid(int gridWidth, int gridHeight, bool random) {
     this->grass = texture3;
 
     sf::Image image4;
-    if (!image4.loadFromFile("../images/red.png"))
+    if (!image4.loadFromFile("images/tiles/red.png"))
     {
         // Error...
     }
@@ -157,9 +154,6 @@ void Grid::initGridVector(bool randomStates, int number) { //TODO: change to ver
     //Not the most efficient
     for (int x = 0; x < gridSize.x; x++) {
         for (int y = 0; y < gridSize.y; y++) {
-            //gridVector[x][y].cell.setSize(sf::Vector2f(10, 10));
-            //gridVector[x][y].cell.setOutlineThickness(1);
-            //gridVector[x][y].cell.setOutlineColor(GREY);
             gridVector[x][y].cellWater = sf::Sprite(water);
             gridVector[x][y].cellDirt = sf::Sprite(dirt); 
             gridVector[x][y].cellGrass = sf::Sprite(grass); 
@@ -177,9 +171,6 @@ int Grid::countNeighborsSame(int x, int y, int areaSize) {
     int xMax = x + areaSize > this->width - 1 ? this->width - 1 : x + areaSize;
     int yMin = y - areaSize < 0 ? 0 : y - areaSize;
     int yMax = y + areaSize > this->height - 1 ? this->height - 1 : y + areaSize;
-    /*if (x - areaSize < 0 || x + areaSize > width - 1 || y - areaSize < 0 || y + areaSize > height - 1) {
-        return 0;
-    }*/
     {
         int state = gridVector[x][y].getState();
         int64_t count = 0;
@@ -201,9 +192,6 @@ int Grid::countNeighborsDiff(int x, int y, int areaSize) {
     int xMax = x + areaSize > this->width - 1 ? this->width - 1 : x + areaSize;
     int yMin = y - areaSize < 0 ? 0 : y - areaSize;
     int yMax = y + areaSize > this->height - 1 ? this->height - 1 : y + areaSize;
-    /*if (x - areaSize < 0 || x + areaSize > width - 1 || y - areaSize < 0 || y + areaSize > height - 1) {
-        return 0;
-    }*/
     {
         int state = gridVector[x][y].getState();
         int64_t count = 0;
@@ -225,9 +213,7 @@ int Grid::getCellNeighbors(int x, int y, int areaSize) {
     int xMax = x + areaSize > this->width - 1 ? this->width - 1 : x + areaSize;
     int yMin = y - areaSize < 0 ? 0 : y - areaSize;
     int yMax = y + areaSize > this->height - 1 ? this->height - 1 : y + areaSize;
-    /*if (x - areaSize < 0 || x + areaSize > width - 1 || y - areaSize < 0 || y + areaSize > height - 1) {
-        return 0;
-    }*/
+
     int water = 0, earth = 0, grass = 0;
     int state = 0;
     int sum = areaSize * 3 + areaSize * areaSize; //WIP
@@ -350,11 +336,6 @@ void Grid::fillGaps(int areaSize) {
                 int state = getCellNeighbors(x, y, 2);
                 newGrid[x][y].setType(state);
             }
-
-            //if (!checkPlusShape(x, y, 1, gridVector)) //remove single cells with no same neighbors in plus shape
-            //{
-            //    gridVector[x][y].setType(getCellNeighbors(x, y, 1));
-            //}
         }
     }
     for (int x = 0; x < this->width; x++) {
@@ -398,8 +379,6 @@ void Grid::update(int& density) {
             }         
         }
     }
-    
-    //this->gridVector = newGrid;
 }
 
 std::vector<std::vector<Cell>> Grid::gridCopy(const std::vector<std::vector<Cell>>& gridVec) {
@@ -472,7 +451,7 @@ void Grid::generatePoints() {
             break;
     }
     if (!foundS || !foundE)
-        std::cout << "Failed" << std::endl;
+        std::cout << "Failed to generate" << std::endl;
     
     
 }
@@ -480,7 +459,7 @@ void Grid::generatePoints() {
 LevelApp::LevelApp() {
     isRunning = false;
     //typePlace = 0;
-    density = 90;
+    density = 100;
     generated = false;
     tileSize = 1;
     spritePlaceOn = false;
@@ -500,22 +479,15 @@ void LevelApp::guiGrid() {
         {
             sf::Sprite sprite;
             sprite.setTexture(i);
-            //sprite.setOrigin(sf::Vector2f(25.f, 25.f));
             spritePlaceOn = true;
             this->sprite = sprite;
-            //grid->sprites.push_back(sprite);
-            //std::cout << grid->sprites.size() << std::endl;
         }
     }
-
-    
-
     ImGui::EndChild();
 }
 
 bool LevelApp::init() {
     bool randomize = true;
-    //grid->resetGrid();
     grid = std::make_shared<Grid>(gridSize.x, gridSize.y, randomize);
     grid->initGridVector(randomize, 200);
     
@@ -527,50 +499,21 @@ bool LevelApp::init() {
 
 bool LevelApp::open()
 {
-    //gameOfLife.run();
-    //int extra = width <= minSize ? 15 : 0;
     this->app = new sf::RenderWindow(sf::VideoMode(int(width), int(height)), "Cellular Automata", sf::Style::Default);
     app->setFramerateLimit(60);
     ImGui::SFML::Init(*app);
 
-    sf::Image image;
-    if (!image.loadFromFile("../images/red.png"))
-    {
-        // Error...
+    std::string path = "images/textures/";
+    for (const auto& entry : std::filesystem::directory_iterator(path)) {
+        sf::Image image;
+        if (!image.loadFromFile(std::string(entry.path().string())))
+        {
+            // Error...
+        }
+        sf::Texture texture;
+        texture.loadFromImage(image);  //Load Texture from image
+        textures.push_back(texture);
     }
-    sf::Texture texture;
-    texture.loadFromImage(image);  //Load Texture from image
-    textures.push_back(texture);
-
-    sf::Image image2;
-    if (!image2.loadFromFile("../images/bridge.png"))
-    {
-        // Error...
-    }
-    sf::Texture texture2;
-    texture2.loadFromImage(image2);  //Load Texture from image
-    textures.push_back(texture2);
-
-    sf::Image image3;
-    if (!image3.loadFromFile("../images/dirt.png"))
-    {
-        // Error...
-    }
-    sf::Texture texture3;
-    texture3.loadFromImage(image3);  //Load Texture from image
-    textures.push_back(texture3);
-
-    sf::Image image4;
-    if (!image4.loadFromFile("../images/pine.png"))
-    {
-        // Error...
-    }
-    sf::Texture texture4;
-    texture4.loadFromImage(image4);  //Load Texture from image
-    textures.push_back(texture4);
-    /*sf::Sprite sprite;
-    sprite.setTexture(texture);   
-    sprites.push_back(sprite);*/
 
     return 1;
 }
@@ -650,12 +593,7 @@ void LevelApp::run() {
                                 grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(0);       
                         }
                         spritePlaceOn = false;
-                            
-                        //std::cout << event.mouseButton.x / Cell::cellSize  << std::endl;
-                            
-                        //                                std::cout << "Number of alive neighbors: " << countNeighbors(int(event.mouseButton.x)/int(Cell::cellSize),int(event.mouseButton.y)/int(Cell::cellSize)) << std::endl;
-                        //                                std::cout<< "Current cell state: " << gridVector[int(event.mouseButton.x)/int(Cell::cellSize)][int(event.mouseButton.y)/int(Cell::cellSize)].getState() << std::endl;
-
+                                                   
                     }
 
                 }
@@ -770,7 +708,6 @@ void LevelApp::run() {
                         app->draw(j.point);
                 }
             }
-            //sprites[0].setScale(sf::Vector2f(tileSize, tileSize));
             for (const auto& i : grid->sprites)
                 app->draw(i);
 
@@ -786,8 +723,7 @@ void LevelApp::run() {
             
             app->draw(sprite);
         }
-        
-        
+              
         ImGui::SFML::Render(*app);
         app->display();
         //sf::sleep(sf::milliseconds(window_delay));

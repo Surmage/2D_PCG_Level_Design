@@ -12,7 +12,6 @@ struct Cell {
 	};
 	constexpr static float cellSize = 16;
 	int32_t x, y;
-	sf::Color color;
 	Type type;
 	sf::Sprite cellWater;
 	sf::Sprite cellDirt;
@@ -51,9 +50,6 @@ struct Grid {
 
 	void setWidth(int width);
 	void setHeight(int height);
-
-	/*static void placeCell(int x, int y, int newType, std::vector<std::vector<Cell>>& gridVec);
-	static void deleteCell(int x, int y, std::vector<std::vector<Cell>>& gridVec);*/
 	bool resetGrid();
 
 	std::vector<std::vector<Cell>> gridCopy(const std::vector<std::vector<Cell>>& gridVec);
@@ -81,14 +77,10 @@ struct LevelApp
 	bool spritePlaceOn;
 	bool editOn;
 	
-	//int typePlace;
-
 	void guiGrid();
 	bool init();
 	bool open();
 	void run();
 	void close();
 	void exit();
-
-	//int fillGrid(Grid& grid);
 };
