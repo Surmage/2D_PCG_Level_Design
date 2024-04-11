@@ -216,7 +216,7 @@ int Grid::getCellNeighbors(int x, int y, int areaSize) {
 
     int water = 0, earth = 0, grass = 0;
     int state = 0;
-    int sum = areaSize * 3 + areaSize * areaSize; //WIP
+    int sum = ((2 * areaSize + 1) * (2 * areaSize + 1) * 0.5) - 1; //Moore neighbourhood formula / 2
     for (int i = xMin; i <= xMax; i++) {
         for (int j = yMin; j <= yMax; j++) {
             if (!(i == x && j == y)) //skip themselves
