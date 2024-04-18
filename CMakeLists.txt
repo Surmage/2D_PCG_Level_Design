@@ -33,16 +33,15 @@ TARGET_INCLUDE_DIRECTORIES(imgui PUBLIC exts/imgui)
 SET_TARGET_PROPERTIES(imgui PROPERTIES FOLDER "exts/imgui")
 TARGET_LINK_LIBRARIES(Level INTERFACE imgui)
 
-# Set the path to SFML directory
-set(SFML_DIR exts/SFML/lib/cmake/SFML/)
-
 # Set SFML to use static libraries
 set(SFML_STATIC_LIBRARIES TRUE)
+
+# Set the path to SFML directory
+set(SFML_DIR "exts/SFML/lib/cmake/SFML")
+
 
 # Find and include SFML
 find_package(SFML 2.6.1 COMPONENTS graphics audio REQUIRED)
 target_link_libraries(imgui PRIVATE sfml-graphics sfml-audio)
 target_link_libraries(Level PRIVATE sfml-graphics sfml-audio imgui)
-IF(MSVC)
-    set_property(TARGET Level PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
-ENDIF()
+SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
