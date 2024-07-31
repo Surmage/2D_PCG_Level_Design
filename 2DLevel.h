@@ -13,10 +13,8 @@ struct Cell {
 	constexpr static float cellSize = 16;
 	int32_t x, y;
 	Type type;
-	sf::Sprite cellWater;
-	sf::Sprite cellDirt;
-	sf::Sprite cellGrass;
-	sf::Sprite point;
+	sf::Vector2f pos;
+	
 	bool isWalkable;
 
 	Cell();
@@ -37,6 +35,11 @@ struct Grid {
 	sf::Texture grass;
 	sf::Texture water;
 	sf::Texture point;
+
+	sf::Sprite cellWater;
+	sf::Sprite cellDirt;
+	sf::Sprite cellGrass;
+	sf::Sprite cellPoint;
 	sf::Vector2i start, end;
 
 	int countNeighborsSame(int x, int y, int areaSize);
@@ -77,6 +80,7 @@ struct LevelApp
 	bool spritePlaceOn;
 	bool editOn;
 	
+	void drawAt(sf::Sprite& mySprite, int x, int y);
 	void guiGrid();
 	bool init();
 	bool open();

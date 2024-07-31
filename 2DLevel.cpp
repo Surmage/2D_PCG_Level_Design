@@ -10,6 +10,7 @@ const int minSize = 30;
 const float camD = 0.84; //camera depth
 constexpr int window_delay = 50;
 
+
 Cell::Cell(){}
 
 Cell::Cell(int _x, int _y, Cell::Type _type) {
@@ -120,6 +121,11 @@ Grid::Grid(int gridWidth, int gridHeight, bool random) {
     sf::Texture texture4;
     texture4.loadFromImage(image4);  //Load Texture from image
     this->point = texture4;
+
+    cellWater = sf::Sprite(water);
+    cellDirt = sf::Sprite(dirt);
+    cellGrass = sf::Sprite(grass);
+    cellPoint = sf::Sprite(point);
 }
 
 void Grid::initGridVector(bool randomStates, int number) { //TODO: change to vertex array for optimization   
@@ -154,14 +160,7 @@ void Grid::initGridVector(bool randomStates, int number) { //TODO: change to ver
     //Not the most efficient
     for (int x = 0; x < gridSize.x; x++) {
         for (int y = 0; y < gridSize.y; y++) {
-            gridVector[x][y].cellWater = sf::Sprite(water);
-            gridVector[x][y].cellDirt = sf::Sprite(dirt); 
-            gridVector[x][y].cellGrass = sf::Sprite(grass); 
-            gridVector[x][y].point = sf::Sprite(point);
-            gridVector[x][y].cellWater.setPosition(float(x) * 16, float(y) * 16);
-            gridVector[x][y].cellDirt.setPosition(float(x) * 16, float(y) * 16);
-            gridVector[x][y].cellGrass.setPosition(float(x) * 16, float(y) * 16);
-            gridVector[x][y].point.setPosition(float(x) * 16, float(y) * 16);
+            gridVector[x][y].pos = sf::Vector2f(float(x) * 16, float(y) * 16);
         }
     }
 }
@@ -469,6 +468,13 @@ LevelApp::~LevelApp() {
 
 }
 
+void LevelApp::drawAt(sf::Sprite& mySprite, int x, int y)
+{
+    // set sprite position, then draw it
+    mySprite.setPosition(sf::Vector2f(x, y));
+    app->draw(mySprite);
+}
+
 void LevelApp::guiGrid() {
     ImGui::BeginChild("Tileset", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar);
     ImGui::InputInt("Tile Scale", &this->tileSize, 1);
@@ -551,6 +557,9 @@ void LevelApp::run() {
                     moving = false;
                     cameraMoveOn = false;
                     isRunning = false;
+                }
+                if (event.key.code == sf::Keyboard::Space) {
+                    isRunning = !isRunning;
                 }
 
                 break;
@@ -694,18 +703,18 @@ void LevelApp::run() {
         guiGrid();
         
         ImGui::End();
-        
         if (generated) {
+            //Needs optimizing badly (vertex arrays)
             for (const auto& i : grid->gridVector) {
                 for (const auto& j : i) {
                     if (j.type == Cell::Type::EARTH)
-                        app->draw(j.cellDirt);
+                        this->drawAt(grid->cellDirt, j.pos.x, j.pos.y);
                     else if (j.type == Cell::Type::GRASS)
-                        app->draw(j.cellGrass);
+                        this->drawAt(grid->cellGrass, j.pos.x, j.pos.y);
                     else if (j.type == Cell::Type::WATER)
-                        app->draw(j.cellWater);
+                        this->drawAt(grid->cellWater, j.pos.x, j.pos.y);
                     else
-                        app->draw(j.point);
+                        this->drawAt(grid->cellPoint, j.pos.x, j.pos.y);
                 }
             }
             for (const auto& i : grid->sprites)
