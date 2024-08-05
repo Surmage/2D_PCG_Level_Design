@@ -11,7 +11,6 @@ struct Cell {
 		POINT
 	};
 	constexpr static float cellSize = 16;
-	int32_t x, y;
 	Type type;
 	sf::Vector2f pos;
 	
@@ -19,13 +18,23 @@ struct Cell {
 
 	Cell();
 	Cell(int _x, int _y, Cell::Type _type);
-	void setPosition(int _x, int _y);
 	void setType(int newType);
 	int getState();
 };
 
+struct TileMap : public sf::Drawable, public sf::Transformable {
+	bool load(const std::string& tileset, sf::Vector2u tileSize, const std::vector<std::vector<int>> tiles, unsigned int width, unsigned int height);
+
+	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
+
+	sf::VertexArray m_vertices;
+	sf::Texture m_tileset;
+};
+
 struct Grid {
+	TileMap map;
 	std::vector<std::vector<Cell>>gridVector;
+	std::vector<std::vector<int>>level;
 	int32_t height;
 	int32_t width;
 	bool randomizeNeighbors;
@@ -50,10 +59,12 @@ struct Grid {
 	void initGridVector(bool randomStates, int number);
 	void generatePoints();
 	
+	
 
 	void setWidth(int width);
 	void setHeight(int height);
 	bool resetGrid();
+	void printLevelArray();
 
 	std::vector<std::vector<Cell>> gridCopy(const std::vector<std::vector<Cell>>& gridVec);
 	void fillGaps(int areaSize);

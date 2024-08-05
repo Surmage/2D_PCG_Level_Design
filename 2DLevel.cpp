@@ -14,17 +14,13 @@ constexpr int window_delay = 50;
 Cell::Cell(){}
 
 Cell::Cell(int _x, int _y, Cell::Type _type) {
-    this->x = _x;
-    this->y = _y;
+    this->pos.x = _x;
+    this->pos.y = _y;
     this->type = _type;
     //cell.setSize(sf::Vector2f(cellSize, cellSize));
     isWalkable = false;
 }
 
-void Cell::setPosition(int _x, int _y) {
-    x = _x;
-    y = _y;
-}
 void Cell::setType(int newType) {
     switch (newType)
     {
@@ -50,6 +46,64 @@ int Cell::getState() {
     else
         return 0;
 }
+
+bool TileMap::load(const std::string& tileset, sf::Vector2u tileSize, const std::vector<std::vector<int>> tiles, unsigned int width, unsigned int height)
+{
+    // load the tileset texture
+    if (!m_tileset.loadFromFile(tileset))
+        return false;
+
+    // resize the vertex array to fit the level size
+    m_vertices.setPrimitiveType(sf::Triangles);
+    m_vertices.resize(width * height * 6);
+
+    // populate the vertex array, with two triangles per tile
+    for (unsigned int i = 0; i < width; ++i)
+        for (unsigned int j = 0; j < height; ++j)
+        {
+            // get the current tile number
+            //int tileNumber = tiles[i + j * width];
+            int tileNumber = tiles[j][i];
+
+            // find its position in the tileset texture
+            int tu = tileNumber % (m_tileset.getSize().x / tileSize.x);
+            int tv = tileNumber / (m_tileset.getSize().x / tileSize.x);
+
+            // get a pointer to the triangles' vertices of the current tile
+            sf::Vertex* triangles = &m_vertices[(i + j * width) * 6];
+
+            // define the 6 corners of the two triangles
+            triangles[0].position = sf::Vector2f(i * tileSize.x, j * tileSize.y);
+            triangles[1].position = sf::Vector2f((i + 1) * tileSize.x, j * tileSize.y);
+            triangles[2].position = sf::Vector2f(i * tileSize.x, (j + 1) * tileSize.y);
+            triangles[3].position = sf::Vector2f(i * tileSize.x, (j + 1) * tileSize.y);
+            triangles[4].position = sf::Vector2f((i + 1) * tileSize.x, j * tileSize.y);
+            triangles[5].position = sf::Vector2f((i + 1) * tileSize.x, (j + 1) * tileSize.y);
+
+            // define the 6 matching texture coordinates
+            triangles[0].texCoords = sf::Vector2f(tu * tileSize.x, tv * tileSize.y);
+            triangles[1].texCoords = sf::Vector2f((tu + 1) * tileSize.x, tv * tileSize.y);
+            triangles[2].texCoords = sf::Vector2f(tu * tileSize.x, (tv + 1) * tileSize.y);
+            triangles[3].texCoords = sf::Vector2f(tu * tileSize.x, (tv + 1) * tileSize.y);
+            triangles[4].texCoords = sf::Vector2f((tu + 1) * tileSize.x, tv * tileSize.y);
+            triangles[5].texCoords = sf::Vector2f((tu + 1) * tileSize.x, (tv + 1) * tileSize.y);
+        }
+
+    return true;
+}
+
+void TileMap::draw(sf::RenderTarget& target, sf::RenderStates states) const
+{
+    // apply the transform
+    states.transform *= getTransform();
+
+    // apply the tileset texture
+    states.texture = &m_tileset;
+
+    // draw the vertex array
+    target.draw(m_vertices, states);
+}
+
 Grid::Grid() {
     this->height = 800;
     this->width = 600;
@@ -128,8 +182,17 @@ Grid::Grid(int gridWidth, int gridHeight, bool random) {
     cellPoint = sf::Sprite(point);
 }
 
-void Grid::initGridVector(bool randomStates, int number) { //TODO: change to vertex array for optimization   
+void Grid::printLevelArray() {
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            std::cout << level[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+}
 
+void Grid::initGridVector(bool randomStates, int number) { //TODO: change to vertex array for optimization   
+    this->level.clear();
     if (!randomStates) {
         for (int i = 0; i < this->width; i++) {
             std::vector<Cell> cellVec;
@@ -141,9 +204,10 @@ void Grid::initGridVector(bool randomStates, int number) { //TODO: change to ver
     }
     else {
         srand(time(nullptr));
-        for (int i = 0; i < this->width; i++) {
+        for (int j = 0; j < this->height; j++) {
             std::vector<Cell> cellVec;
-            for (int j = 0; j < this->height; j++) {
+            std::vector<int> intVec;
+            for (int i = 0; i < this->width; i++) {
                 int n = rand() % 3;
                 if(n == 0)
                     cellVec.push_back(Cell(i, j, Cell::Type::WATER));
@@ -151,18 +215,22 @@ void Grid::initGridVector(bool randomStates, int number) { //TODO: change to ver
                     cellVec.push_back(Cell(i, j, Cell::Type::EARTH));
                 else
                     cellVec.push_back(Cell(i, j, Cell::Type::GRASS));
+                intVec.push_back(n);
+                //this->level.push_back(n);
                 
             }
+            this->level.push_back(intVec);
             gridVector.push_back(cellVec);
         }
     }
 
-    //Not the most efficient
-    for (int x = 0; x < gridSize.x; x++) {
-        for (int y = 0; y < gridSize.y; y++) {
-            gridVector[x][y].pos = sf::Vector2f(float(x) * 16, float(y) * 16);
+        //Not the most efficient
+    
+        for (int y = 0; y < this->height; y++) {            
+            for (int x = 0; x < this->width; x++) {
+                gridVector[x][y].pos = sf::Vector2f(float(y) * 16, float(x) * 16);
+            }
         }
-    }
 }
 
 int Grid::countNeighborsSame(int x, int y, int areaSize) {
@@ -496,6 +564,7 @@ bool LevelApp::init() {
     bool randomize = true;
     grid = std::make_shared<Grid>(gridSize.x, gridSize.y, randomize);
     grid->initGridVector(randomize, 200);
+    grid->map.load("images/tiles/tileset.png", sf::Vector2u(32, 32), grid->level, grid->width, grid->height);
     
     generated = true;
     generatedX = gridSize.x;
@@ -588,7 +657,7 @@ void LevelApp::run() {
                     if (event.mouseButton.button == sf::Mouse::Right)
                     {
                         if (!spritePlaceOn) {
-                            for (int i = 0; i < grid->sprites.size(); i++) {
+                            for (int i = grid->sprites.size() - 1; i >= 0; i--) {
                                 if (grid->sprites[i].getGlobalBounds().contains(oldPos)) {
                                     grid->sprites.erase(grid->sprites.begin() + i);
                                     goto out;
@@ -676,6 +745,7 @@ void LevelApp::run() {
         if (ImGui::Button("Generate")) {
             isRunning = false;
             init();
+            grid->printLevelArray();
         }
         if (ImGui::Button("Start")) {
             isRunning = !isRunning;
@@ -705,7 +775,7 @@ void LevelApp::run() {
         ImGui::End();
         if (generated) {
             //Needs optimizing badly (vertex arrays)
-            for (const auto& i : grid->gridVector) {
+            /*for (const auto& i : grid->gridVector) {
                 for (const auto& j : i) {
                     if (j.type == Cell::Type::EARTH)
                         this->drawAt(grid->cellDirt, j.pos.x, j.pos.y);
@@ -716,7 +786,9 @@ void LevelApp::run() {
                     else
                         this->drawAt(grid->cellPoint, j.pos.x, j.pos.y);
                 }
-            }
+            }*/
+            //std::cout << grid->level.size() << std::endl;
+            app->draw(grid->map);
             for (const auto& i : grid->sprites)
                 app->draw(i);
 
