@@ -6,53 +6,19 @@
 const int width = 1080;
 const int height = 720;
 sf::Vector2i gridSize(300, 300);
+const int cellSize = 32;
 const int minSize = 30;
 const float camD = 0.84; //camera depth
 constexpr int window_delay = 50;
 
 
-Cell::Cell(){}
-
-Cell::Cell(int _x, int _y, Cell::Type _type) {
-    this->pos.x = _x;
-    this->pos.y = _y;
-    this->type = _type;
-    //cell.setSize(sf::Vector2f(cellSize, cellSize));
-    isWalkable = false;
-}
-
-void Cell::setType(int newType) {
-    switch (newType)
-    {
-    case 0:
-        type = Cell::Type::WATER;
-        isWalkable = false;
-        break;
-    case 1:
-        type = Cell::Type::EARTH;
-        isWalkable = true;
-        break;
-    case 2:
-        type = Cell::Type::GRASS;
-        isWalkable = true;
-        break;
-    }
-}
-int Cell::getState() {
-    if (type == Cell::Type::EARTH)
-        return 1;
-    else if (type == Cell::Type::GRASS)
-        return 2;
-    else
-        return 0;
-}
-
-bool TileMap::load(const std::string& tileset, sf::Vector2u tileSize, const std::vector<std::vector<int>> tiles, unsigned int width, unsigned int height)
+bool TileMap::load(const std::string& tileset, sf::Vector2u _tileSize, const std::vector<std::vector<int>> tiles, unsigned int width, unsigned int height)
 {
     // load the tileset texture
     if (!m_tileset.loadFromFile(tileset))
         return false;
 
+    this->tileSize = _tileSize;
     // resize the vertex array to fit the level size
     m_vertices.setPrimitiveType(sf::Triangles);
     m_vertices.resize(width * height * 6);
@@ -92,6 +58,22 @@ bool TileMap::load(const std::string& tileset, sf::Vector2u tileSize, const std:
     return true;
 }
 
+void TileMap::changeTex(const int x, const int y, const int tileNum, unsigned int width) {
+
+    // find its position in the tileset texture
+    int tu = tileNum % (m_tileset.getSize().x / tileSize.x);
+    int tv = tileNum / (m_tileset.getSize().x / tileSize.x);
+
+    sf::Vertex* triangles = &m_vertices[(x + y * width) * 6];
+    int res = (x + y) * 6;
+    triangles[0].texCoords = sf::Vector2f(tu * tileSize.x, tv * tileSize.y);
+    triangles[1].texCoords = sf::Vector2f((tu + 1) * tileSize.x, tv * tileSize.y);
+    triangles[2].texCoords = sf::Vector2f(tu * tileSize.x, (tv + 1) * tileSize.y);
+    triangles[3].texCoords = sf::Vector2f(tu * tileSize.x, (tv + 1) * tileSize.y);
+    triangles[4].texCoords = sf::Vector2f((tu + 1) * tileSize.x, tv * tileSize.y);
+    triangles[5].texCoords = sf::Vector2f((tu + 1) * tileSize.x, (tv + 1) * tileSize.y);
+}
+
 void TileMap::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
     // apply the transform
@@ -109,77 +91,13 @@ Grid::Grid() {
     this->width = 600;
     //this->isRunning = false;
     this->randomizeNeighbors = true;
-    sf::Image image;
-    if (!image.loadFromFile("images/tiles/dirt.png"))
-    {
-        // Error...
-    }
-    sf::Texture texture;
-    texture.loadFromImage(image);  //Load Texture from image
-    this->dirt = texture;
 
-    sf::Image image2;
-    if (!image2.loadFromFile("images/tiles/water.png"))
-    {
-        // Error...
-    }
-    sf::Texture texture2;
-    texture2.loadFromImage(image2);  //Load Texture from image
-    this->water = texture2;
-
-    sf::Image image3;
-    if (!image3.loadFromFile("images/tiles/grass.png"))
-    {
-        // Error...
-    }
-    sf::Texture texture3;
-    texture3.loadFromImage(image3);  //Load Texture from image
-    this->grass = texture3;
 }
 Grid::Grid(int gridWidth, int gridHeight, bool random) {
     this->height = gridHeight;
     this->width = gridWidth;
     this->randomizeNeighbors = random;
-    sf::Image image;
-    if (!image.loadFromFile("images/tiles/dirt.png"))
-    {
-        // Error...
-    }
-    sf::Texture texture;
-    texture.loadFromImage(image);  //Load Texture from image
-    this->dirt = texture;
 
-    sf::Image image2;
-    if (!image2.loadFromFile("images/tiles/water.png"))
-    {
-        // Error...
-    }
-    sf::Texture texture2;
-    texture2.loadFromImage(image2);  //Load Texture from image
-    this->water = texture2;
-
-    sf::Image image3;
-    if (!image3.loadFromFile("images/tiles/grass.png"))
-    {
-        // Error...
-    }
-    sf::Texture texture3;
-    texture3.loadFromImage(image3);  //Load Texture from image
-    this->grass = texture3;
-
-    sf::Image image4;
-    if (!image4.loadFromFile("images/tiles/red.png"))
-    {
-        // Error...
-    }
-    sf::Texture texture4;
-    texture4.loadFromImage(image4);  //Load Texture from image
-    this->point = texture4;
-
-    cellWater = sf::Sprite(water);
-    cellDirt = sf::Sprite(dirt);
-    cellGrass = sf::Sprite(grass);
-    cellPoint = sf::Sprite(point);
 }
 
 void Grid::printLevelArray() {
@@ -194,43 +112,35 @@ void Grid::printLevelArray() {
 void Grid::initGridVector(bool randomStates, int number) { //TODO: change to vertex array for optimization   
     this->level.clear();
     if (!randomStates) {
-        for (int i = 0; i < this->width; i++) {
-            std::vector<Cell> cellVec;
-            for (int j = 0; j < this->height; j++) {
-                cellVec.push_back(Cell(i, j, Cell::Type::WATER));
+        for (int j = 0; j < this->height; j++) {
+            std::vector<int> intVec;
+            for (int i = 0; i < this->width; i++) {
+                intVec.push_back(0);
+
             }
-            gridVector.push_back(cellVec);
+            this->level.push_back(intVec);
         }
     }
     else {
         srand(time(nullptr));
         for (int j = 0; j < this->height; j++) {
-            std::vector<Cell> cellVec;
             std::vector<int> intVec;
             for (int i = 0; i < this->width; i++) {
                 int n = rand() % 3;
-                if(n == 0)
-                    cellVec.push_back(Cell(i, j, Cell::Type::WATER));
-                else if(n == 1)
-                    cellVec.push_back(Cell(i, j, Cell::Type::EARTH));
-                else
-                    cellVec.push_back(Cell(i, j, Cell::Type::GRASS));
                 intVec.push_back(n);
-                //this->level.push_back(n);
                 
             }
             this->level.push_back(intVec);
-            gridVector.push_back(cellVec);
         }
     }
 
         //Not the most efficient
     
-        for (int y = 0; y < this->height; y++) {            
+        /*for (int y = 0; y < this->height; y++) {            
             for (int x = 0; x < this->width; x++) {
                 gridVector[x][y].pos = sf::Vector2f(float(y) * 16, float(x) * 16);
             }
-        }
+        }*/
 }
 
 int Grid::countNeighborsSame(int x, int y, int areaSize) {
@@ -239,12 +149,12 @@ int Grid::countNeighborsSame(int x, int y, int areaSize) {
     int yMin = y - areaSize < 0 ? 0 : y - areaSize;
     int yMax = y + areaSize > this->height - 1 ? this->height - 1 : y + areaSize;
     {
-        int state = gridVector[x][y].getState();
+        int state = level[x][y];
         int64_t count = 0;
         for (int i = xMin; i <= xMax; i++) {
             for (int j = yMin; j <= yMax; j++) {
                 if (!(i == x && j == y)) {
-                    if (gridVector[i][j].getState() == state) {
+                    if (level[i][j] == state) {
                         count++;
                     }
                 }
@@ -260,12 +170,12 @@ int Grid::countNeighborsDiff(int x, int y, int areaSize) {
     int yMin = y - areaSize < 0 ? 0 : y - areaSize;
     int yMax = y + areaSize > this->height - 1 ? this->height - 1 : y + areaSize;
     {
-        int state = gridVector[x][y].getState();
+        int state = level[x][y];
         int64_t count = 0;
         for (int i = xMin; i <= xMax; i++) {
             for (int j = yMin; j <= yMax; j++) {
                 if (!(i == x && j == y)) {
-                    if (gridVector[i][j].getState() != state) {
+                    if (level[i][j] != state) {
                         count++;
                     }
                 }
@@ -288,7 +198,7 @@ int Grid::getCellNeighbors(int x, int y, int areaSize) {
         for (int j = yMin; j <= yMax; j++) {
             if (!(i == x && j == y)) //skip themselves
             {
-                state = gridVector[i][j].getState();
+                state = level[i][j];
                 switch (state)
                 {             
                 case 1:
@@ -314,31 +224,31 @@ int Grid::getCellNeighbors(int x, int y, int areaSize) {
     return 0;
 }
 
-bool Grid::checkPlusShape(int x, int y, int l, std::vector<std::vector<Cell>>& gridVec) {
+bool Grid::checkPlusShape(int x, int y, int l, std::vector<std::vector<int>>& gridVec) {
     int xMin = x - l < 0 ? 0 : x - l;
     int xMax = x + l > this->width - 1 ? this->width - 1 : x + l;
     int yMin = y - l < 0 ? 0 : y - l;
     int yMax = y + l > this->height - 1 ? this->height - 1 : y + l;
 
-    if ((gridVec[x][y].getState() == gridVec[xMin][y].getState() && xMin != 0)
-        || (gridVec[x][y].getState() == gridVec[xMax][y].getState() && xMax != this->width-1)
-        || (gridVec[x][y].getState() == gridVec[x][yMin].getState() && yMin != 0)
-        || (gridVec[x][y].getState() == gridVec[x][yMax].getState() && yMax != this->height-1))
+    if ((gridVec[x][y] == gridVec[xMin][y] && xMin != 0)
+        || (gridVec[x][y] == gridVec[xMax][y] && xMax != this->width-1)
+        || (gridVec[x][y] == gridVec[x][yMin] && yMin != 0)
+        || (gridVec[x][y] == gridVec[x][yMax] && yMax != this->height-1))
         return true;
     
     return false;
 }
 
-bool Grid::checkPlusShapeFull(int x, int y, int l, std::vector<std::vector<Cell>>& gridVec) {
+bool Grid::checkPlusShapeFull(int x, int y, int l, std::vector<std::vector<int>>& gridVec) {
     int xMin = x - 1 < 0 ? 0 : x - 1;
     int xMax = x + 1 > this->width - 1 ? this->width - 1 : x + 1;
     int yMin = y - 1 < 0 ? 0 : y - 1;
     int yMax = y + 1 > this->height - 1 ? this->height - 1 : y + 1;
 
-    if ((gridVec[x][y].getState() == gridVec[xMin][y].getState() && xMin != 0)
-        && (gridVec[x][y].getState() == gridVec[xMax][y].getState() && xMax != this->width - 1)
-        && (gridVec[x][y].getState() == gridVec[x][yMin].getState() && yMin != 0)
-        && (gridVec[x][y].getState() == gridVec[x][yMax].getState() && yMax != this->height - 1))
+    if ((gridVec[x][y] == gridVec[xMin][y] && xMin != 0)
+        && (gridVec[x][y] == gridVec[xMax][y] && xMax != this->width - 1)
+        && (gridVec[x][y] == gridVec[x][yMin] && yMin != 0)
+        && (gridVec[x][y] == gridVec[x][yMax] && yMax != this->height - 1))
         return true;
 
     return false;
@@ -353,11 +263,11 @@ void Grid::fillGaps(int areaSize) {
     int count = 0;
     bool opp = false;
     std::vector<sf::Vector2i>points;
-    std::vector<std::vector<Cell>> newGrid = gridCopy(gridVector);
+    std::vector<std::vector<int>> newGrid = gridCopy(level);
 
     for (int x = 0; x < this->width; x++) {
         for (int y = 0; y < this->height; y++) {
-            if (gridVector[x][y].type == Cell::Type::WATER)
+            if (level[x][y] == 0)
                 continue;
             points.clear();
             opp = false;
@@ -367,15 +277,15 @@ void Grid::fillGaps(int areaSize) {
             yMin = y - areaSize < 0 ? 0 : y - areaSize;
             yMax = y + areaSize > this->height - 1 ? this->height - 1 : y + areaSize;
             
-            state = gridVector[x][y].getState();
+            state = level[x][y];
 
             for (int i = xMin; i <= xMax; i++) {
                 for (int j = yMin; j <= yMax; j++) {
                     if (!(i == x && j == y)) {
-                        if (gridVector[i][j].getState() != state && !opp) {
+                        if (level[i][j] != state && !opp) {
                             opp = true;
                         }
-                        else if (gridVector[i][j].getState() == state && opp) {
+                        else if (level[i][j] == state && opp) {
                             count++;
                             points.push_back(sf::Vector2i(i, j));
                         }
@@ -387,7 +297,7 @@ void Grid::fillGaps(int areaSize) {
             for (const sf::Vector2i p : points) { 
                 for (int i = x; i-- > p.x;) { //x
                     for (int j = y; j-- > p.y;) { //y
-                        newGrid[i][j].setType(state);
+                        newGrid[i][j] = state;
                     }
                     
                 }   
@@ -399,9 +309,9 @@ void Grid::fillGaps(int areaSize) {
    
     for (int x = 0; x < this->width; x++) {
         for (int y = 0; y < this->height; y++) {
-            if (gridVector[x][y].type == Cell::Type::WATER && countNeighborsDiff(x, y, 2) >= 8) {
+            if (level[x][y] == 0 && countNeighborsDiff(x, y, 2) >= 8) {
                 int state = getCellNeighbors(x, y, 2);
-                newGrid[x][y].setType(state);
+                level[x][y] = state;
             }
         }
     }
@@ -410,23 +320,23 @@ void Grid::fillGaps(int areaSize) {
             if (!checkPlusShape(x, y, 1, newGrid)) //remove single cells with no same neighbors in plus shape
             {
                 int state = getCellNeighbors(x, y, 1);
-                newGrid[x][y].setType(state);
+                newGrid[x][y] = state;
             }
         }
     }
     //look 3 points to each direction
-    this->gridVector = newGrid;
+    this->level = newGrid;
     
 }
 
 void Grid::update(int& density) {
     for (int i = 0; i < this->width; i++) {
         for (int j = 0; j < this->height; j++) {
-            if ((gridVector[i][j].type == Cell::Type::WATER))
+            if ((level[i][j] == 0))
             {
                 if (countNeighborsDiff(i, j, (int)(this->height * 0.018)) >= density) { //water turn to land
                     int state = getCellNeighbors(i, j, 3);
-                    gridVector[i][j].setType(state);
+                    level[i][j] = state;
                     continue;
                 }
 
@@ -434,25 +344,25 @@ void Grid::update(int& density) {
 
             else if (countNeighborsDiff(i, j, (int)(this->height * 0.018)) >= density) { //land spread
                 int state = getCellNeighbors(i, j, (int)(this->height * 0.018));
-                gridVector[i][j].setType(state); //increased density means this gets triggered less
+                level[i][j] = state; //increased density means this gets triggered less
                 continue;
             }
 
-            else if (countNeighborsDiff(i, j, 1) >= 4 && !checkPlusShape(i, j, 1, gridVector)) //remove single cells with no same neighbors in plus shape
+            else if (countNeighborsDiff(i, j, 1) >= 4 && !checkPlusShape(i, j, 1, level)) //remove single cells with no same neighbors in plus shape
             {
                 int state = getCellNeighbors(i, j, 1);                
-                gridVector[i][j].setType(state);
+                level[i][j] = state;
                 continue;
             }         
         }
     }
 }
 
-std::vector<std::vector<Cell>> Grid::gridCopy(const std::vector<std::vector<Cell>>& gridVec) {
-    std::vector<std::vector<Cell>> copy;
-    for (int i = 0; i < gridVector.size(); i++) {
-        std::vector<Cell> copyVec;
-        for (int j = 0; j < gridVector[i].size(); j++) {
+std::vector<std::vector<int>> Grid::gridCopy(const std::vector<std::vector<int>>& gridVec) {
+    std::vector<std::vector<int>> copy;
+    for (int i = 0; i < this->level.size(); i++) {
+        std::vector<int> copyVec;
+        for (int j = 0; j < level[i].size(); j++) {
             copyVec.push_back(gridVec[i][j]);
         }
         copy.push_back(copyVec);
@@ -460,9 +370,9 @@ std::vector<std::vector<Cell>> Grid::gridCopy(const std::vector<std::vector<Cell
     return copy;
 }
 bool Grid::resetGrid() {
-    for (int i = gridVector.size(); i-- > 0;) {
-        gridVector[i].clear();
-        gridVector[i].shrink_to_fit();
+    for (int i = level.size(); i-- > 0;) {
+        level[i].clear();
+        level[i].shrink_to_fit();
     }
     return true;
 }
@@ -485,11 +395,11 @@ void Grid::generatePoints() {
     
     for (int i = y; i < this->height; i++) {
         for (int j = x; j < this->width; j++) {
-            if (!gridVector[j][i].isWalkable)
+            if (level[j][i] != 0) //if is walkable
                 continue;
-            if (checkPlusShape(j, i, 1, gridVector) && gridVector[j][i].type != Cell::Type::WATER) {
+            if (checkPlusShape(j, i, 1, level) && level[j][i] != 0) {
                 start = sf::Vector2i(j, i);
-                gridVector[j][i].type = Cell::Type::POINT;
+                level[j][i] = 4; //maximum tyles + 1
                 //gridVector[j][i].point.setScale(sf::Vector2f(200, 200));
                 
                 foundS = true;
@@ -504,9 +414,9 @@ void Grid::generatePoints() {
 
     for (int i = gridSize.y - y; i-- > 0;) {
         for (int j = gridSize.x - x; j-- > 0;) {
-            if (checkPlusShape(j, i, 1, gridVector) && gridVector[j][i].type != Cell::Type::WATER) {
+            if (checkPlusShape(j, i, 1, level) && level[j][i] != 0) {
                 end = sf::Vector2i(j, i);
-                gridVector[j][i].type = Cell::Type::POINT;
+                level[j][i] = 4;
                 //gridVector[j][i].point.setScale(sf::Vector2f(200, 200));
                 foundE = true;
                 std::cout 
@@ -564,7 +474,7 @@ bool LevelApp::init() {
     bool randomize = true;
     grid = std::make_shared<Grid>(gridSize.x, gridSize.y, randomize);
     grid->initGridVector(randomize, 200);
-    grid->map.load("images/tiles/tileset.png", sf::Vector2u(32, 32), grid->level, grid->width, grid->height);
+    grid->map.load("images/tiles/tileset.png", sf::Vector2u(cellSize, cellSize), grid->level, grid->width, grid->height);
     
     generated = true;
     generatedX = gridSize.x;
@@ -643,11 +553,11 @@ void LevelApp::run() {
                     if (event.mouseButton.button == sf::Mouse::Left)
                     {
                         if (!spritePlaceOn) {
-                            if (oldPos.x <= gridSize.x * Cell::cellSize &&
+                            if (oldPos.x <= gridSize.x * cellSize &&
                                 oldPos.x >= 0 &&
-                                oldPos.y <= gridSize.y * Cell::cellSize &&
+                                oldPos.y <= gridSize.y * cellSize &&
                                 oldPos.y >= 0)
-                                grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(1);
+                                grid->level[int(oldPos.x) / int(cellSize)][int(oldPos.y) / int(cellSize)] = 1;
                         }
                         else {
                             grid->sprites.push_back(sprite);
@@ -664,11 +574,14 @@ void LevelApp::run() {
                                 }
                             }
                                 
-                            if (oldPos.x <= gridSize.x * Cell::cellSize &&
+                            if (oldPos.x <= gridSize.x * cellSize &&
                                 oldPos.x >= 0 &&
-                                oldPos.y <= gridSize.y * Cell::cellSize &&
-                                oldPos.y >= 0)
-                                grid->gridVector[int(oldPos.x) / int(Cell::cellSize)][int(oldPos.y) / int(Cell::cellSize)].setType(0);       
+                                oldPos.y <= gridSize.y * cellSize &&
+                                oldPos.y >= 0) {
+                                grid->level[int(oldPos.x) / int(cellSize)][int(oldPos.y) / int(cellSize)] = 0;
+                                grid->map.changeTex(int(oldPos.x) / int(cellSize), (int)oldPos.y / int(cellSize), 0, grid->width);
+                            }
+                                       
                         }
                         spritePlaceOn = false;
                                                    
@@ -745,7 +658,8 @@ void LevelApp::run() {
         if (ImGui::Button("Generate")) {
             isRunning = false;
             init();
-            grid->printLevelArray();
+            //grid->printLevelArray();
+            grid->map.m_vertices;
         }
         if (ImGui::Button("Start")) {
             isRunning = !isRunning;
