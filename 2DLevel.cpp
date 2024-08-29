@@ -255,6 +255,8 @@ bool Grid::checkPlusShapeFull(int x, int y, int l, std::vector<std::vector<int>>
 }
 
 void Grid::fillGaps(int areaSize) {
+    this->prevLevels[this->level] = this->prevLevels.size() + this->sprites.size();;
+
     int xMin;
     int xMax;
     int yMin;
@@ -298,12 +300,11 @@ void Grid::fillGaps(int areaSize) {
                 for (int i = x; i-- > p.x;) { //x
                     for (int j = y; j-- > p.y;) { //y
                         newGrid[i][j] = state;
+                        //map.changeTex(i, j, state, this->width);
                     }
                     
                 }   
-            }
-           
-            
+            }       
         }
     }
    
@@ -311,7 +312,8 @@ void Grid::fillGaps(int areaSize) {
         for (int y = 0; y < this->height; y++) {
             if (level[x][y] == 0 && countNeighborsDiff(x, y, 2) >= 8) {
                 int state = getCellNeighbors(x, y, 2);
-                level[x][y] = state;
+                newGrid[x][y] = state;
+                //map.changeTex(x, y, state, this->width);
             }
         }
     }
@@ -321,22 +323,25 @@ void Grid::fillGaps(int areaSize) {
             {
                 int state = getCellNeighbors(x, y, 1);
                 newGrid[x][y] = state;
+                //map.changeTex(x, y, state, this->width);
             }
         }
     }
     //look 3 points to each direction
     this->level = newGrid;
+    this->map.load("images/tiles/tileset.png", sf::Vector2u(cellSize, cellSize), this->level, this->width, this->height);
     
 }
 
 void Grid::update(int& density) {
-    for (int i = 0; i < this->width; i++) {
-        for (int j = 0; j < this->height; j++) {
+    for (int i = 0; i < this->height; i++) {
+        for (int j = 0; j < this->width; j++) {
             if ((level[i][j] == 0))
             {
                 if (countNeighborsDiff(i, j, (int)(this->height * 0.018)) >= density) { //water turn to land
                     int state = getCellNeighbors(i, j, 3);
                     level[i][j] = state;
+                    //map.changeTex(i, j, state, this->width);
                     continue;
                 }
 
@@ -345,6 +350,7 @@ void Grid::update(int& density) {
             else if (countNeighborsDiff(i, j, (int)(this->height * 0.018)) >= density) { //land spread
                 int state = getCellNeighbors(i, j, (int)(this->height * 0.018));
                 level[i][j] = state; //increased density means this gets triggered less
+                //map.changeTex(i, j, state, this->width);
                 continue;
             }
 
@@ -352,10 +358,12 @@ void Grid::update(int& density) {
             {
                 int state = getCellNeighbors(i, j, 1);                
                 level[i][j] = state;
+                //map.changeTex(i, j, state, this->width);
                 continue;
             }         
         }
     }
+    map.load("images/tiles/tileset.png", sf::Vector2u(cellSize, cellSize), this->level, this->width, this->height);
 }
 
 std::vector<std::vector<int>> Grid::gridCopy(const std::vector<std::vector<int>>& gridVec) {
@@ -395,11 +403,12 @@ void Grid::generatePoints() {
     
     for (int i = y; i < this->height; i++) {
         for (int j = x; j < this->width; j++) {
-            if (level[j][i] != 0) //if is walkable
+            if (level[j][i] == 0) //if is not walkable
                 continue;
             if (checkPlusShape(j, i, 1, level) && level[j][i] != 0) {
                 start = sf::Vector2i(j, i);
-                level[j][i] = 4; //maximum tyles + 1
+                level[j][i] = 3; //maximum tyles + 1
+                map.changeTex(i, j, 3, this->width);
                 //gridVector[j][i].point.setScale(sf::Vector2f(200, 200));
                 
                 foundS = true;
@@ -416,7 +425,8 @@ void Grid::generatePoints() {
         for (int j = gridSize.x - x; j-- > 0;) {
             if (checkPlusShape(j, i, 1, level) && level[j][i] != 0) {
                 end = sf::Vector2i(j, i);
-                level[j][i] = 4;
+                level[j][i] = 3;
+                map.changeTex(i, j, 3, this->width);
                 //gridVector[j][i].point.setScale(sf::Vector2f(200, 200));
                 foundE = true;
                 std::cout 
@@ -431,6 +441,14 @@ void Grid::generatePoints() {
         std::cout << "Failed to generate" << std::endl;
     
     
+}
+
+bool Grid::loadPrevLevel(const int i) {
+    if (prevLevels.empty()) return false;
+    this->level = (std::prev(prevLevels.end())->first);
+    this->prevLevels.erase(std::prev(prevLevels.end()));
+    this->map.load("images/tiles/tileset.png", sf::Vector2u(cellSize, cellSize), this->level, this->width, this->height);
+    return true;
 }
 
 LevelApp::LevelApp() {
@@ -540,13 +558,45 @@ void LevelApp::run() {
                 if (event.key.code == sf::Keyboard::Space) {
                     isRunning = !isRunning;
                 }
+                else if (event.key.code == sf::Keyboard::Z && event.key.control) {
+                    //Check if latest addition is in levels or sprites
+                    std::cout << std::prev(this->grid->prevLevels.end())->second << " " << this->grid->prevLevels.size() + this->grid->sprites.size() - 1 << std::endl;
+                    if (!this->grid->prevLevels.empty()) {
+                        if (std::prev(this->grid->prevLevels.end())->second
+                            == this->grid->prevLevels.size() + this->grid->sprites.size() - 1) {
+                            grid->loadPrevLevel(1);
+                            break;
+                        }
+                    }
+                    
+                    if (!this->grid->sprites.empty()) {
+                        if (std::get<1>(this->grid->sprites[this->grid->sprites.size() - 1])
+                            == this->grid->prevLevels.size() + this->grid->sprites.size() - 1) {
+                            this->grid->sprites.pop_back();
+                        }
+                    }
+                   
+                }
+                else if (event.key.code == sf::Keyboard::LShift) {
+                    cameraMoveOn = true;
+
+                }
+                else if (event.key.code == sf::Keyboard::E)
+                    editOn = !editOn;
 
                 break;
+
+            case sf::Event::KeyReleased:
+                if (event.key.code == sf::Keyboard::LShift) {
+                    cameraMoveOn = false;
+
+                }
+                break;
+                
             case sf::Event::MouseButtonPressed:
                 if (cameraMoveOn && !ImGui::GetIO().WantCaptureMouse)
                     moving = true;
                 oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
-                //sprites[0].setPosition(oldPos);
 
                 if (!isRunning && editOn && !ImGui::GetIO().WantCaptureMouse)
                 {
@@ -560,15 +610,16 @@ void LevelApp::run() {
                                 grid->level[int(oldPos.x) / int(cellSize)][int(oldPos.y) / int(cellSize)] = 1;
                         }
                         else {
-                            grid->sprites.push_back(sprite);
+                            this->grid->sprites.push_back(std::make_tuple
+                            (sprite, this->grid->sprites.size() + this->grid->prevLevels.size()));
                         }
                             
                     }
-                    if (event.mouseButton.button == sf::Mouse::Right)
+                    if (event.mouseButton.button == sf::Mouse::Right)std::map<sf::Sprite, int>sprites;
                     {
                         if (!spritePlaceOn) {
                             for (int i = grid->sprites.size() - 1; i >= 0; i--) {
-                                if (grid->sprites[i].getGlobalBounds().contains(oldPos)) {
+                                if (std::get<0>(grid->sprites[i]).getGlobalBounds().contains(oldPos)) {
                                     grid->sprites.erase(grid->sprites.begin() + i);
                                     goto out;
                                 }
@@ -578,8 +629,10 @@ void LevelApp::run() {
                                 oldPos.x >= 0 &&
                                 oldPos.y <= gridSize.y * cellSize &&
                                 oldPos.y >= 0) {
-                                grid->level[int(oldPos.x) / int(cellSize)][int(oldPos.y) / int(cellSize)] = 0;
-                                grid->map.changeTex(int(oldPos.x) / int(cellSize), (int)oldPos.y / int(cellSize), 0, grid->width);
+                                //this->grid->prevLevels.push_back((this->grid->level = 1));
+                                this->grid->prevLevels[this->grid->level] = this->grid->prevLevels.size() + this->grid->sprites.size();
+                                grid->level[int(oldPos.y) / int(cellSize)][int(oldPos.x) / int(cellSize)] = 3;
+                                grid->map.changeTex(int(oldPos.x) / int(cellSize), (int)oldPos.y / int(cellSize), 3, grid->width);
                             }
                                        
                         }
@@ -652,14 +705,14 @@ void LevelApp::run() {
         out:
         ImGui::Text("Mouse position:(%i, %i)", mousePos.x, mousePos.y);
         ImGui::InputInt("Width", &gridSize.x, 5);
-        ImGui::InputInt("Height", &gridSize.y, 5);
-        
+        ImGui::InputInt("Height", &gridSize.y, 5);        
         
         if (ImGui::Button("Generate")) {
             isRunning = false;
             init();
             //grid->printLevelArray();
             grid->map.m_vertices;
+            
         }
         if (ImGui::Button("Start")) {
             isRunning = !isRunning;
@@ -678,6 +731,9 @@ void LevelApp::run() {
         if (ImGui::Button("Generate points")) {
             grid->generatePoints();
         }
+        if (ImGui::Button("Undo")) {
+            grid->loadPrevLevel(1);
+        }
         
         app->clear(sf::Color::White);
 
@@ -688,32 +744,18 @@ void LevelApp::run() {
         
         ImGui::End();
         if (generated) {
-            //Needs optimizing badly (vertex arrays)
-            /*for (const auto& i : grid->gridVector) {
-                for (const auto& j : i) {
-                    if (j.type == Cell::Type::EARTH)
-                        this->drawAt(grid->cellDirt, j.pos.x, j.pos.y);
-                    else if (j.type == Cell::Type::GRASS)
-                        this->drawAt(grid->cellGrass, j.pos.x, j.pos.y);
-                    else if (j.type == Cell::Type::WATER)
-                        this->drawAt(grid->cellWater, j.pos.x, j.pos.y);
-                    else
-                        this->drawAt(grid->cellPoint, j.pos.x, j.pos.y);
-                }
-            }*/
-            //std::cout << grid->level.size() << std::endl;
             app->draw(grid->map);
             for (const auto& i : grid->sprites)
-                app->draw(i);
+                app->draw(std::get<0>(i));
 
             if (isRunning) {
-                grid->update(density);
+                this->grid->prevLevels[this->grid->level] = this->grid->prevLevels.size() + this->grid->sprites.size();
+                grid->update(density);      
             }
         }
         if (spritePlaceOn) {
             sprite.setOrigin(sf::Vector2f(0.5f*tileSize, 0.5f*tileSize));
-            sprite.setPosition(sf::Vector2f(mousePos));
-           
+            sprite.setPosition(sf::Vector2f(mousePos));           
             sprite.setScale(sf::Vector2f(tileSize, tileSize));
             
             app->draw(sprite);

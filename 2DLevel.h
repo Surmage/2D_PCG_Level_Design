@@ -37,11 +37,12 @@ struct Grid {
 	TileMap map;
 	//std::vector<std::vector<Cell>>gridVector;
 	std::vector<std::vector<int>>level;
+	std::map<std::vector<std::vector<int>>, int> prevLevels;
 	int32_t height;
 	int32_t width;
 	bool randomizeNeighbors;
 	int density;
-	std::vector<sf::Sprite>sprites;
+	std::vector<std::tuple<sf::Sprite, int>>sprites;
 	sf::Vector2i start, end;
 
 	int countNeighborsSame(int x, int y, int areaSize);
@@ -51,6 +52,7 @@ struct Grid {
 	bool checkPlusShapeFull(int x, int y, int l, std::vector<std::vector<int>>& gridVec);
 	void initGridVector(bool randomStates, int number);
 	void generatePoints();
+	bool loadPrevLevel(const int i);
 	
 	
 
@@ -67,6 +69,7 @@ struct Grid {
 	Grid(int gridWidth, int gridHeight, bool random);
 };
 
+//TODO: Saving and loading tile map. Loading tileset from files. Undo on sprite placements.
 struct LevelApp 
 {
 	LevelApp();

@@ -25,8 +25,7 @@ ADD_LIBRARY(imgui STATIC
 			exts/imgui/imstb_textedit.h
 			exts/imgui/imstb_truetype.h
 			)
-			
-#TARGET_LINK_LIBRARIES(imgui PUBLIC Level)
+
 TARGET_INCLUDE_DIRECTORIES(imgui PUBLIC exts/imgui)
 SET_TARGET_PROPERTIES(imgui PROPERTIES FOLDER "exts/imgui")
 TARGET_LINK_LIBRARIES(Level INTERFACE imgui)
@@ -36,7 +35,6 @@ set(SFML_DIR "exts/SFML/lib/cmake/SFML")
 
 # Set SFML to use static libraries
 set(SFML_STATIC_LIBRARIES TRUE)
-
 
 # Find and include SFML
 find_package(SFML 2.6.1 COMPONENTS graphics audio REQUIRED)
