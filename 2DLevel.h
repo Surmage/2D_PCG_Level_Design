@@ -52,7 +52,7 @@ struct Grid {
 	bool checkPlusShapeFull(int x, int y, int l, std::vector<std::vector<int>>& gridVec);
 	void initGridVector(bool randomStates, int number);
 	void generatePoints();
-	bool loadPrevLevel(const int i);
+	bool loadPrevLevel();
 	
 	
 

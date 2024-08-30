@@ -334,6 +334,8 @@ void Grid::fillGaps(int areaSize) {
 }
 
 void Grid::update(int& density) {
+    this->prevLevels[this->level] = this->prevLevels.size() + this->sprites.size();
+
     for (int i = 0; i < this->height; i++) {
         for (int j = 0; j < this->width; j++) {
             if ((level[i][j] == 0))
@@ -363,6 +365,7 @@ void Grid::update(int& density) {
             }         
         }
     }
+    
     map.load("images/tiles/tileset.png", sf::Vector2u(cellSize, cellSize), this->level, this->width, this->height);
 }
 
@@ -443,11 +446,26 @@ void Grid::generatePoints() {
     
 }
 
-bool Grid::loadPrevLevel(const int i) {
-    if (prevLevels.empty()) return false;
-    this->level = (std::prev(prevLevels.end())->first);
-    this->prevLevels.erase(std::prev(prevLevels.end()));
-    this->map.load("images/tiles/tileset.png", sf::Vector2u(cellSize, cellSize), this->level, this->width, this->height);
+
+bool Grid::loadPrevLevel() {
+    if (this->prevLevels.empty()) {
+        return false;
+    }
+    
+    std::cout << this->prevLevels.size() + this->sprites.size() << std::endl;
+    for (auto it = this->prevLevels.cbegin(); it != this->prevLevels.cend();)
+    {
+        if (it->second == this->prevLevels.size() + this->sprites.size() - 1) {
+            this->level = it->first;
+            this->map.load("images/tiles/tileset.png", sf::Vector2u(cellSize, cellSize), this->level, this->width, this->height);
+            this->prevLevels.erase(it++);
+            break;
+        }
+        else
+            ++it;
+    }
+    
+   
     return true;
 }
 
@@ -560,14 +578,8 @@ void LevelApp::run() {
                 }
                 else if (event.key.code == sf::Keyboard::Z && event.key.control) {
                     //Check if latest addition is in levels or sprites
-                    std::cout << std::prev(this->grid->prevLevels.end())->second << " " << this->grid->prevLevels.size() + this->grid->sprites.size() - 1 << std::endl;
-                    if (!this->grid->prevLevels.empty()) {
-                        if (std::prev(this->grid->prevLevels.end())->second
-                            == this->grid->prevLevels.size() + this->grid->sprites.size() - 1) {
-                            grid->loadPrevLevel(1);
-                            break;
-                        }
-                    }
+                    
+                    this->grid->loadPrevLevel();
                     
                     if (!this->grid->sprites.empty()) {
                         if (std::get<1>(this->grid->sprites[this->grid->sprites.size() - 1])
@@ -629,7 +641,6 @@ void LevelApp::run() {
                                 oldPos.x >= 0 &&
                                 oldPos.y <= gridSize.y * cellSize &&
                                 oldPos.y >= 0) {
-                                //this->grid->prevLevels.push_back((this->grid->level = 1));
                                 this->grid->prevLevels[this->grid->level] = this->grid->prevLevels.size() + this->grid->sprites.size();
                                 grid->level[int(oldPos.y) / int(cellSize)][int(oldPos.x) / int(cellSize)] = 3;
                                 grid->map.changeTex(int(oldPos.x) / int(cellSize), (int)oldPos.y / int(cellSize), 3, grid->width);
@@ -732,7 +743,7 @@ void LevelApp::run() {
             grid->generatePoints();
         }
         if (ImGui::Button("Undo")) {
-            grid->loadPrevLevel(1);
+            //grid->loadPrevLevel(1);
         }
         
         app->clear(sf::Color::White);
@@ -749,8 +760,8 @@ void LevelApp::run() {
                 app->draw(std::get<0>(i));
 
             if (isRunning) {
-                this->grid->prevLevels[this->grid->level] = this->grid->prevLevels.size() + this->grid->sprites.size();
-                grid->update(density);      
+                grid->update(density); 
+
             }
         }
         if (spritePlaceOn) {
