@@ -459,14 +459,12 @@ bool Grid::loadPrevLevel() {
             this->level = it->first;
             this->map.load("images/tiles/tileset.png", sf::Vector2u(cellSize, cellSize), this->level, this->width, this->height);
             this->prevLevels.erase(it++);
-            break;
+            return true;
         }
         else
             ++it;
     }
-    
-   
-    return true;
+    return false;
 }
 
 LevelApp::LevelApp() {
@@ -579,14 +577,17 @@ void LevelApp::run() {
                 else if (event.key.code == sf::Keyboard::Z && event.key.control) {
                     //Check if latest addition is in levels or sprites
                     
-                    this->grid->loadPrevLevel();
+                    if (this->grid->loadPrevLevel())
+                        break;
                     
                     if (!this->grid->sprites.empty()) {
                         if (std::get<1>(this->grid->sprites[this->grid->sprites.size() - 1])
                             == this->grid->prevLevels.size() + this->grid->sprites.size() - 1) {
                             this->grid->sprites.pop_back();
+                            break;
                         }
                     }
+                    std::cout << "Fail" << std::endl;
                    
                 }
                 else if (event.key.code == sf::Keyboard::LShift) {
@@ -618,8 +619,16 @@ void LevelApp::run() {
                             if (oldPos.x <= gridSize.x * cellSize &&
                                 oldPos.x >= 0 &&
                                 oldPos.y <= gridSize.y * cellSize &&
-                                oldPos.y >= 0)
-                                grid->level[int(oldPos.x) / int(cellSize)][int(oldPos.y) / int(cellSize)] = 1;
+                                oldPos.y >= 0) {
+                                sf::Vector2 clickPos = sf::Vector2(int(oldPos.y) / int(cellSize), int(oldPos.x) / int(cellSize));
+                                
+                                if (grid->level[clickPos.x][clickPos.y] != 1) {
+                                    this->grid->prevLevels[this->grid->level] = this->grid->prevLevels.size() + this->grid->sprites.size();
+                                    grid->level[clickPos.x][clickPos.y] = 1;
+                                    grid->map.changeTex(int(oldPos.x) / int(cellSize), (int)oldPos.y / int(cellSize), 1, grid->width);
+                                }
+                            }
+                                           
                         }
                         else {
                             this->grid->sprites.push_back(std::make_tuple
@@ -627,7 +636,7 @@ void LevelApp::run() {
                         }
                             
                     }
-                    if (event.mouseButton.button == sf::Mouse::Right)std::map<sf::Sprite, int>sprites;
+                    else if (event.mouseButton.button == sf::Mouse::Right)
                     {
                         if (!spritePlaceOn) {
                             for (int i = grid->sprites.size() - 1; i >= 0; i--) {
@@ -722,8 +731,7 @@ void LevelApp::run() {
             isRunning = false;
             init();
             //grid->printLevelArray();
-            grid->map.m_vertices;
-            
+            grid->map.m_vertices;            
         }
         if (ImGui::Button("Start")) {
             isRunning = !isRunning;
@@ -767,8 +775,7 @@ void LevelApp::run() {
         if (spritePlaceOn) {
             sprite.setOrigin(sf::Vector2f(0.5f*tileSize, 0.5f*tileSize));
             sprite.setPosition(sf::Vector2f(mousePos));           
-            sprite.setScale(sf::Vector2f(tileSize, tileSize));
-            
+            sprite.setScale(sf::Vector2f(tileSize, tileSize));            
             app->draw(sprite);
         }
               
