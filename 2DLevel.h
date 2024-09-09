@@ -53,6 +53,7 @@ struct Grid {
 	void initGridVector(bool randomStates, int number);
 	void generatePoints();
 	bool loadPrevLevel();
+	bool undo();
 	
 	
 

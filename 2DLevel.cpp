@@ -467,6 +467,22 @@ bool Grid::loadPrevLevel() {
     return false;
 }
 
+bool Grid::undo() {
+    if (this->loadPrevLevel())
+        return true;
+
+    if (!this->sprites.empty()) {
+        if (std::get<1>(this->sprites[this->sprites.size() - 1])
+            == this->prevLevels.size() + this->sprites.size() - 1) {
+            this->sprites.pop_back();
+            return true;
+        }
+    }
+   
+    std::cout << "Fail" << std::endl; 
+    return false;
+}
+
 LevelApp::LevelApp() {
     isRunning = false;
     //typePlace = 0;
@@ -576,18 +592,7 @@ void LevelApp::run() {
                 }
                 else if (event.key.code == sf::Keyboard::Z && event.key.control) {
                     //Check if latest addition is in levels or sprites
-                    
-                    if (this->grid->loadPrevLevel())
-                        break;
-                    
-                    if (!this->grid->sprites.empty()) {
-                        if (std::get<1>(this->grid->sprites[this->grid->sprites.size() - 1])
-                            == this->grid->prevLevels.size() + this->grid->sprites.size() - 1) {
-                            this->grid->sprites.pop_back();
-                            break;
-                        }
-                    }
-                    std::cout << "Fail" << std::endl;
+                    this->grid->undo();                   
                    
                 }
                 else if (event.key.code == sf::Keyboard::LShift) {
@@ -718,9 +723,7 @@ void LevelApp::run() {
                 app->setView(view);
             }
             break;
-            }
-           
-            
+            }   
         }
         out:
         ImGui::Text("Mouse position:(%i, %i)", mousePos.x, mousePos.y);
@@ -751,7 +754,7 @@ void LevelApp::run() {
             grid->generatePoints();
         }
         if (ImGui::Button("Undo")) {
-            //grid->loadPrevLevel(1);
+            grid->undo();
         }
         
         app->clear(sf::Color::White);
