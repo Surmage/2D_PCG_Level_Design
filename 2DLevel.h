@@ -87,9 +87,12 @@ struct LevelApp
 	sf::Sprite sprite;
 	bool spritePlaceOn;
 	bool editOn;
+	bool moving;
+	bool cameraMoveOn;
 	
 	void drawAt(sf::Sprite& mySprite, int x, int y);
 	void guiGrid();
+	int popups();
 	bool init();
 	bool open();
 	void run();

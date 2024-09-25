@@ -442,8 +442,7 @@ void Grid::generatePoints() {
     }
     if (!foundS || !foundE)
         std::cout << "Failed to generate" << std::endl;
-    
-    
+        
 }
 
 
@@ -520,6 +519,43 @@ void LevelApp::guiGrid() {
     ImGui::EndChild();
 }
 
+int LevelApp::popups() {
+    if (ImGui::BeginPopupModal("Warning", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Are you sure you want to generate a new grid?");
+        if (ImGui::Button("Confirm", ImVec2(60, 0))) {
+            isRunning = false;
+            init();
+            //grid->printLevelArray();
+            grid->map.m_vertices;
+            
+            ImGui::CloseCurrentPopup();
+        }
+
+        if (ImGui::Button("Cancel", ImVec2(60, 0)))
+            ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+        return 1;
+    }
+
+    if (ImGui::BeginPopupModal("Reset", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Are you sure you want to reset your current grid?");
+        if (ImGui::Button("Confirm", ImVec2(60, 0))) {
+            isRunning = false;
+            moving = false;
+            cameraMoveOn = false;
+            grid->resetGrid();
+            generated = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        if (ImGui::Button("Cancel", ImVec2(60, 0)))
+            ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+        return 1;
+    }
+    return 0;
+}
+
 bool LevelApp::init() {
     bool randomize = true;
     grid = std::make_shared<Grid>(gridSize.x, gridSize.y, randomize);
@@ -556,9 +592,10 @@ bool LevelApp::open()
 void LevelApp::run() {   
     sf::Clock deltaClock;
     sf::Vector2f oldPos;
-    bool moving = false;
+    
     float zoom = 1;
-    bool cameraMoveOn = false;
+    moving = false;
+    cameraMoveOn = false;
     float rotateImage = 0;
     
     sf::View view = app->getDefaultView();
@@ -731,21 +768,24 @@ void LevelApp::run() {
         ImGui::InputInt("Height", &gridSize.y, 5);        
         
         if (ImGui::Button("Generate")) {
-            isRunning = false;
-            init();
-            //grid->printLevelArray();
-            grid->map.m_vertices;            
+            if(generated)
+                ImGui::OpenPopup("Warning");
+            else {
+                isRunning = false;
+                init();
+                //grid->printLevelArray();
+                grid->map.m_vertices;
+            }
+                       
         }
+       
         if (ImGui::Button("Start")) {
             isRunning = !isRunning;
         }
-        if (ImGui::Button("Reset")) {
+        if (ImGui::Button("Reset")) { //TODO: Add "Are you sure?" option yes/cancel
             //reset
-            isRunning = false;
-            moving = false;
-            cameraMoveOn = false;
-            grid->resetGrid();
-            generated = false;
+            if (generated)
+                ImGui::OpenPopup("Reset");
         }
         if (ImGui::Button("Fill")) {
             grid->fillGaps(3);
@@ -756,13 +796,21 @@ void LevelApp::run() {
         if (ImGui::Button("Undo")) {
             grid->undo();
         }
+        if (ImGui::Button("MoveBack")) {
+            view.setCenter(sf::Vector2f(0, 0));
+            app->setView(view);
+        }
         
         app->clear(sf::Color::White);
 
         ImGui::Checkbox("Movement", &cameraMoveOn);
-        ImGui::Checkbox("Edit", &editOn);
         ImGui::SliderInt("Density", &density, 80, 120);
-        guiGrid();
+        ImGui::Checkbox("Edit", &editOn);
+        if (editOn) {
+            guiGrid();
+        }
+        
+        this->popups();
         
         ImGui::End();
         if (generated) {
