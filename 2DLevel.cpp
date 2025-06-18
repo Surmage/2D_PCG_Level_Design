@@ -497,7 +497,8 @@ LevelApp::LevelApp() {
     generated = false;
     tileSize = 1;
     spritePlaceOn = false;
-    editOn = false;
+    editOn = false;  
+    tileTextureIndex = 0;
 }
 LevelApp::~LevelApp() {
 
@@ -525,31 +526,13 @@ void LevelApp::guiGrid() {
             this->sprite = sprite;
         }
     }
-    std::cout << this->grid->map.tileSize.x << std::endl;
-    int i = 0;
-    sf::Image originalImage = this->grid->map.m_tileset.copyToImage();
-    sf::Image subImage;
-    while (i < this->grid->map.m_tileset.getSize().x) {
-        //sf::Sprite sprite;
-        //sprite.setTexture(this->grid->map.m_tileset);
-        //sprite.setTextureRect(sf::IntRect(32, 32, 32, 32));
-        //
-        //const sf::Texture* tex = sprite.getTexture();
-        ////ImTextureID tilesetTextureId = (ImTextureID)tex; // Cast the texture ID to ImTextureID
-        
-        subImage.create(32, 32); // create the destination image (size of the portion)
-        subImage.copy(originalImage, 0, 0, sf::IntRect(0, 0, 32, 32)); // copy the region
-
-        // 2. Create a new texture from that image
-        
-        newTexture.loadFromImage(subImage);
-        ImTextureID tilesetTextureId = (ImTextureID)(intptr_t)newTexture.getNativeHandle();
-        //ImGui::Image(tilesetTextureId, ImVec2(32, 32));
+    for (int i = 0; i < tileTextures.size(); i++) {
+        const auto& ay = tileTextures[i];
+        ImTextureID tilesetTextureId = (ImTextureID)(intptr_t)ay.getNativeHandle();
         if (ImGui::ImageButton(tilesetTextureId, ImVec2(32, 32)))
         {
-
+            this->tileTextureIndex = i;
         }
-        i+= this->grid->map.tileSize.x;
     }
     
     ImGui::EndChild();
@@ -601,6 +584,24 @@ bool LevelApp::init() {
     generated = true;
     generatedX = gridSize.x;
     generatedY = gridSize.y;
+
+    int i = 0;
+    while (i < this->grid->map.m_tileset.getSize().x)
+    {
+        sf::Texture tex;
+        
+        sf::Image originalImage = this->grid->map.m_tileset.copyToImage();
+        sf::Image subImage;
+
+        subImage.create(32, 32); // create the destination image (size of the portion)
+        subImage.copy(originalImage, 0, 0, sf::IntRect(i, 0, 32, 32)); // copy the region
+
+        tex.loadFromImage(subImage);
+        tileTextures.push_back(tex);
+        i += this->grid->map.tileSize.x;
+    }
+    
+
     return true;
 }
 
@@ -703,11 +704,10 @@ void LevelApp::run() {
                                 //Get the position of the mouse, to place the tile there
                                 sf::Vector2 clickPos = sf::Vector2(int(oldPos.y) / int(cellSize), int(oldPos.x) / int(cellSize));
                                 
-                                if (grid->level[clickPos.x][clickPos.y] != 1) {
-                                    std::cout << "Placing water tile" << std::endl;
+                                if (grid->level[clickPos.x][clickPos.y] != tileTextureIndex) {
                                     this->grid->prevLevels[this->grid->level] = this->grid->prevLevels.size() + this->grid->sprites.size();
-                                    grid->level[clickPos.x][clickPos.y] = 1;
-                                    grid->map.changeTex(int(oldPos.x) / int(cellSize), (int)oldPos.y / int(cellSize), 1, grid->width);
+                                    grid->level[clickPos.x][clickPos.y] = tileTextureIndex;
+                                    grid->map.changeTex(int(oldPos.x) / int(cellSize), (int)oldPos.y / int(cellSize), tileTextureIndex, grid->width);
                                 }
                             }
                                            
@@ -736,10 +736,10 @@ void LevelApp::run() {
                                 //Get the position of the mouse, to place the tile there
                                 sf::Vector2 clickPos = sf::Vector2(int(oldPos.y) / int(cellSize), int(oldPos.x) / int(cellSize));
 
-                                if (grid->level[clickPos.x][clickPos.y] != 3) {
+                                if (grid->level[clickPos.x][clickPos.y] != tileTextureIndex) {
                                     this->grid->prevLevels[this->grid->level] = this->grid->prevLevels.size() + this->grid->sprites.size();
-                                    grid->level[clickPos.x][clickPos.y] = 3;
-                                    grid->map.changeTex(int(oldPos.x) / int(cellSize), (int)oldPos.y / int(cellSize), 3, grid->width);
+                                    grid->level[clickPos.x][clickPos.y] = tileTextureIndex;
+                                    grid->map.changeTex(int(oldPos.x) / int(cellSize), (int)oldPos.y / int(cellSize), tileTextureIndex, grid->width);
                                 }                            
                             }
                                        
@@ -847,7 +847,6 @@ void LevelApp::run() {
             view.setCenter(sf::Vector2f(0, 0));
             app->setView(view);
         }
-        
         app->clear(sf::Color::White);
 
         ImGui::Checkbox("Movement", &cameraMoveOn);

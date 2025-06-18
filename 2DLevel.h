@@ -93,7 +93,8 @@ struct LevelApp
 	bool editOn;
 	bool moving;
 	bool cameraMoveOn;
-	sf::Texture newTexture;
+	std::vector<sf::Texture> tileTextures;
+	int tileTextureIndex;
 	
 	void drawAt(sf::Sprite& mySprite, int x, int y);
 	void guiGrid();
