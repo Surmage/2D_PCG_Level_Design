@@ -447,14 +447,17 @@ void Grid::generatePoints() {
 
 
 bool Grid::loadPrevLevel() {
+    //Return false if there are no previous level states
     if (this->prevLevels.empty()) {
         return false;
     }
     
-    std::cout << this->prevLevels.size() + this->sprites.size() << std::endl;
+    
+    //Loop through previous states
     for (auto it = this->prevLevels.cbegin(); it != this->prevLevels.cend();)
     {
         if (it->second == this->prevLevels.size() + this->sprites.size() - 1) {
+            //set current level to previous state
             this->level = it->first;
             this->map.load("images/tiles/tileset.png", sf::Vector2u(cellSize, cellSize), this->level, this->width, this->height);
             this->prevLevels.erase(it++);
@@ -467,10 +470,15 @@ bool Grid::loadPrevLevel() {
 }
 
 bool Grid::undo() {
+    std::cout << this->prevLevels.size() + this->sprites.size() << std::endl;
+    //First, check if the previous state involved a tile change
+    //Attempt to load previous level state
     if (this->loadPrevLevel())
         return true;
 
+    //Second, check if the previous state involved a sprite change
     if (!this->sprites.empty()) {
+        
         if (std::get<1>(this->sprites[this->sprites.size() - 1])
             == this->prevLevels.size() + this->sprites.size() - 1) {
             this->sprites.pop_back();
@@ -508,14 +516,42 @@ void LevelApp::guiGrid() {
     
     for (const auto& i : this->textures) {
         ImTextureID tilesetTextureId = (ImTextureID)(intptr_t)i.getNativeHandle(); // Cast the texture ID to ImTextureID
-        if (ImGui::ImageButton((ImTextureID)tilesetTextureId, ImVec2(50, 50)) && editOn)
+        if (ImGui::ImageButton((ImTextureID)tilesetTextureId, ImVec2(50, 50)))
         {
             sf::Sprite sprite;
             sprite.setTexture(i);
+
             spritePlaceOn = true;
             this->sprite = sprite;
         }
     }
+    std::cout << this->grid->map.tileSize.x << std::endl;
+    int i = 0;
+    sf::Image originalImage = this->grid->map.m_tileset.copyToImage();
+    sf::Image subImage;
+    while (i < this->grid->map.m_tileset.getSize().x) {
+        //sf::Sprite sprite;
+        //sprite.setTexture(this->grid->map.m_tileset);
+        //sprite.setTextureRect(sf::IntRect(32, 32, 32, 32));
+        //
+        //const sf::Texture* tex = sprite.getTexture();
+        ////ImTextureID tilesetTextureId = (ImTextureID)tex; // Cast the texture ID to ImTextureID
+        
+        subImage.create(32, 32); // create the destination image (size of the portion)
+        subImage.copy(originalImage, 0, 0, sf::IntRect(0, 0, 32, 32)); // copy the region
+
+        // 2. Create a new texture from that image
+        
+        newTexture.loadFromImage(subImage);
+        ImTextureID tilesetTextureId = (ImTextureID)(intptr_t)newTexture.getNativeHandle();
+        //ImGui::Image(tilesetTextureId, ImVec2(32, 32));
+        if (ImGui::ImageButton(tilesetTextureId, ImVec2(32, 32)))
+        {
+
+        }
+        i+= this->grid->map.tileSize.x;
+    }
+    
     ImGui::EndChild();
 }
 
@@ -652,19 +688,23 @@ void LevelApp::run() {
                 if (cameraMoveOn && !ImGui::GetIO().WantCaptureMouse)
                     moving = true;
                 oldPos = app->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
-
+                //Edit mode begin
                 if (!isRunning && editOn && !ImGui::GetIO().WantCaptureMouse)
                 {
                     if (event.mouseButton.button == sf::Mouse::Left)
                     {
                         if (!spritePlaceOn) {
+                            //check if mouse press is within bounds
                             if (oldPos.x <= gridSize.x * cellSize &&
                                 oldPos.x >= 0 &&
                                 oldPos.y <= gridSize.y * cellSize &&
-                                oldPos.y >= 0) {
+                                oldPos.y >= 0) 
+                            {
+                                //Get the position of the mouse, to place the tile there
                                 sf::Vector2 clickPos = sf::Vector2(int(oldPos.y) / int(cellSize), int(oldPos.x) / int(cellSize));
                                 
                                 if (grid->level[clickPos.x][clickPos.y] != 1) {
+                                    std::cout << "Placing water tile" << std::endl;
                                     this->grid->prevLevels[this->grid->level] = this->grid->prevLevels.size() + this->grid->sprites.size();
                                     grid->level[clickPos.x][clickPos.y] = 1;
                                     grid->map.changeTex(int(oldPos.x) / int(cellSize), (int)oldPos.y / int(cellSize), 1, grid->width);
@@ -680,7 +720,8 @@ void LevelApp::run() {
                     }
                     else if (event.mouseButton.button == sf::Mouse::Right)
                     {
-                        if (!spritePlaceOn) {
+                        if (!spritePlaceOn) 
+                        {
                             for (int i = grid->sprites.size() - 1; i >= 0; i--) {
                                 if (std::get<0>(grid->sprites[i]).getGlobalBounds().contains(oldPos)) {
                                     grid->sprites.erase(grid->sprites.begin() + i);
@@ -692,9 +733,14 @@ void LevelApp::run() {
                                 oldPos.x >= 0 &&
                                 oldPos.y <= gridSize.y * cellSize &&
                                 oldPos.y >= 0) {
-                                this->grid->prevLevels[this->grid->level] = this->grid->prevLevels.size() + this->grid->sprites.size();
-                                grid->level[int(oldPos.y) / int(cellSize)][int(oldPos.x) / int(cellSize)] = 3;
-                                grid->map.changeTex(int(oldPos.x) / int(cellSize), (int)oldPos.y / int(cellSize), 3, grid->width);
+                                //Get the position of the mouse, to place the tile there
+                                sf::Vector2 clickPos = sf::Vector2(int(oldPos.y) / int(cellSize), int(oldPos.x) / int(cellSize));
+
+                                if (grid->level[clickPos.x][clickPos.y] != 3) {
+                                    this->grid->prevLevels[this->grid->level] = this->grid->prevLevels.size() + this->grid->sprites.size();
+                                    grid->level[clickPos.x][clickPos.y] = 3;
+                                    grid->map.changeTex(int(oldPos.x) / int(cellSize), (int)oldPos.y / int(cellSize), 3, grid->width);
+                                }                            
                             }
                                        
                         }
@@ -703,6 +749,7 @@ void LevelApp::run() {
                     }
 
                 }
+                //Edit mode end
                 break;
             case sf::Event::MouseButtonReleased:
                 // Mouse button is released, no longer move

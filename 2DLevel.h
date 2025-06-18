@@ -37,12 +37,16 @@ struct Grid {
 	TileMap map;
 	//std::vector<std::vector<Cell>>gridVector;
 	std::vector<std::vector<int>>level;
-	std::map<std::vector<std::vector<int>>, int> prevLevels;
+	//Each previous level is tied to an int value representing its order in the action hierarchy
+	//for the sake of the undoing command (ctrl z)
+	std::map<std::vector<std::vector<int>>, int> prevLevels; 	
 	int32_t height;
 	int32_t width;
 	bool randomizeNeighbors;
 	int density;
-	std::vector<std::tuple<sf::Sprite, int>>sprites;
+	//Each level is tied to an int value representing its order in the action hierarchy
+	//for the sake of the undoing command (ctrl z)
+	std::vector<std::tuple<sf::Sprite, int>>sprites;  
 	sf::Vector2i start, end;
 
 	int countNeighborsSame(int x, int y, int areaSize);
@@ -89,6 +93,7 @@ struct LevelApp
 	bool editOn;
 	bool moving;
 	bool cameraMoveOn;
+	sf::Texture newTexture;
 	
 	void drawAt(sf::Sprite& mySprite, int x, int y);
 	void guiGrid();
